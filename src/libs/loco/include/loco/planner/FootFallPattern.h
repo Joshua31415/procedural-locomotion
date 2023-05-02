@@ -244,7 +244,7 @@ public:
      * time t, if the limb is in swing or stance mode, time remaining for the
      * current contact configuration, etc...
      */
-    ContactPhaseInfo getContactPhaseInformation(const const std::shared_ptr<RobotLimb> &l, double t) {
+    ContactPhaseInfo getContactPhaseInformation(const std::shared_ptr<RobotLimb> &l, double t) {
         SwingPhaseContainer *spc = nullptr;
         for (uint i = 0; i < cs.size(); i++)
             if (cs[i].limb == l) {
