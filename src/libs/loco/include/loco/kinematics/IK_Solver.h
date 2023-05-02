@@ -35,28 +35,23 @@ public:
             dVector q;
             gcrr.getQ(q);
 
-            // get current generalized coordinates of the robots
 
-            // TODO: Inverse Kinematics
-            //
-            // update generalized coordinates of the robot by solving IK.
-
-            // remember, we don't update base pose since we assume it's already at
-            // the target position and orientation
             dVector deltaq(q.size() - 6);
             deltaq.setZero();
 
-            // TODO: here, compute deltaq using Gauss-Newton.
-            // end effector targets are stored in endEffectorTargets vector.
-            //
-            // Hint:
-            // - use gcrr.estimate_linear_jacobian(p, rb, dpdq) function for Jacobian matrix.
-            // - don't forget we use only last q.size() - 6 columns (use block(0,6,3,q.size() - 6) function)
-            // - when you compute inverse of the matrix, use ldlt().solve() instead of inverse() function. this is numerically more stable.
-            //   see https://eigen.tuxfamily.org/dox-devel/group__LeastSquares.html
+            for (auto &t: endEffectorTargets) {
+                // compute error
+                P3D pWorld = gcrr.getWorldCoordinates(t.p, t.rb);
+                P3D pTarget = t.target;
+                V3D error = (V3D(pTarget) - V3D(pWorld));
 
-            // TODO: your implementation should be here.
-
+                // compute Jacobian
+                Matrix J;
+                gcrr.estimate_linear_jacobian(t.p, t.rb, J);
+                J = J.block(0, 6, 3, q.size() - 6).eval();
+                // update dq
+                deltaq += (J.transpose() * J).ldlt().solve(J.transpose() * error);
+            }
             q.tail(q.size() - 6) += deltaq;
 
             // now update gcrr with q
