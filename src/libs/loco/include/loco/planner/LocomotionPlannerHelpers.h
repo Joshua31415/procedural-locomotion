@@ -36,6 +36,7 @@ public:
 
     LimbMotionProperties() {
         // p: this trajectory should be parameterized...
+        // TODO: change trajectory of the foot here
         swingFootHeightTraj.addKnot(0, 0);
         swingFootHeightTraj.addKnot(0.5, 1.0);
         swingFootHeightTraj.addKnot(1.0, 0);
@@ -129,7 +130,9 @@ public:
                 // in stance, we want the foot to not slip, while keeping to
                 // the ground...
                 V3D eePos = traj.getKnotValue(traj.getKnotCount() - 1);
-                eePos.y() = groundHeight + limb->ee->radius * lmp.contactSafetyFactor;  // account for the size of the ee
+                eePos.y() = groundHeight + limb->ee->radius * lmp.contactSafetyFactor
+                            + limb->ee->defaultHeight;  // account for the size of the ee
+                eePos.y() = groundHeight + limb->ee->defaultHeight;
                 while (t <= tEndOfStance && t < tEnd) {
                     traj.addKnot(t, eePos);
                     t += dt;
@@ -168,12 +171,17 @@ public:
                         dTimeStep = dt / (cpiSwing.getTimeLeft() - 0.05) * factor;
 
                     V3D deltaStep = dTimeStep * (finalEEPos - oldEEPos);
+                    deltaStep[0] = 0.0;
+                    //deltaStep[2] = 0.0;
                     V3D eePos = oldEEPos + deltaStep;
 
                     // add ground height + ee size as offset...
                     eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
-                                lmp.swingHeightOffsetTrajDueToFootSize.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * limb->ee->radius;
-
+                                lmp.swingHeightOffsetTrajDueToFootSize.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * limb->ee->radius +
+                                limb->ee->defaultHeight;
+                    eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
+                                limb->ee->defaultHeight;
+                    //eePos.y() = groundHeight + limb->ee->defaultHeight;
                     traj.addKnot(t, eePos);
                     t += dt;
                 }

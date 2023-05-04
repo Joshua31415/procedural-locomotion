@@ -405,13 +405,15 @@ void RBLoader::loadFromFile(const std::shared_ptr<RB> &rb, FILE *fp) const {
             case RB_END_EFFECTOR: {
                 P3D EE = P3D(0, 0, 0);
                 double radius = 0;
+                double defaultHeight = 0;
                 // Only parse EE position and size. Ignore others.
-                sscanf(line, "%lf %lf %lf %lf %*d %*lf %*lf %*lf %*d", &EE.x, &EE.y, &EE.z, &radius);
+                sscanf(line, "%lf %lf %lf %lf %lf %*d %*lf %*lf %*lf %*d", &EE.x, &EE.y, &EE.z, &radius, &defaultHeight);
                 rb->rbProps.endEffectorPoints.emplace_back();
                 rb->rbProps.endEffectorPoints.back().endEffectorOffset = EE;
                 // rb->rbProps.endEffectorPoints.back().endEffectorTip = EE;
                 rb->rbProps.endEffectorPoints.back().radius = radius;
                 rb->rbProps.endEffectorPoints.back().name = rb->name;  // just use rb's name for now...
+                rb->rbProps.endEffectorPoints.back().defaultHeight = defaultHeight;
             } break;
             case RB_FRICTION_COEFF: {
                 sscanf(line, "%lf", &rb->rbProps.frictionCoeff);

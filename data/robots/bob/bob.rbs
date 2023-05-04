@@ -275,7 +275,7 @@ RB
 	mass	3.20361328125					
 	moi	0.0559615552425385	0.0038011622428894	0.0559615552425385	0	0	0
 	collisionSphere 0 -0.225 0 0.03
-    endEffector 0 -0.225 0 0.03
+    endEffector 0 -0.225 -0.01 0.03 0.0
 
 /End_RB
 
@@ -298,7 +298,7 @@ RB
 	collisionSphere 0.03 -0.02 0.07 0.01
 	collisionSphere -0.03 -0.02 0.07 0.01
 
-	endEffector 0 -0.02 0.0825 0.001
+	endEffector 0 -0.02 0.0825 0.001 0.0
 
 /End_RB
 
@@ -312,7 +312,7 @@ RB
 	collisionSphere 0.03 0 0.015 0.01
 	collisionSphere -0.03 0 0.015 0.01
 
-	endEffector -0.03 0 0.015 0.01
+	endEffector -0.03 0 0.015 0.01 0.0
 
 /End_RB
 
@@ -350,13 +350,14 @@ RB
 	mass	3.20361328125					
 	moi	0.0559615552425385	0.0038011622428894	0.0559615552425385	0	0	0	
 	collisionSphere 0 -0.225 0 0.03
-	endEffector 0 -0.225 0 0.03
+	endEffector 0 -0.225 -0.01 0.03 0.05625
 /End_RB
 
 RB
 	name rFoot_tmp
 	mass	0.35					
 	moi	0.0003	0.0003	0.0003	0	0	0
+	endEffector 0 -0.225 0 0.03 0.05625
 /End_RB
 
 RB
@@ -373,7 +374,7 @@ RB
 	collisionSphere 0.03 -0.02 0.07 0.01
 	collisionSphere -0.03 -0.02 0.07 0.01
 
-    endEffector 0 -0.02 0.0825 0.001
+    endEffector 0 -0.02 0.0825 0.001 0.0
 /End_RB
 
 RB
@@ -385,7 +386,7 @@ RB
 
 	collisionSphere 0.03 0 0.015 0.01
 	collisionSphere -0.03 0 0.015 0.01
-    endEffector -0.03 0 0.015 0.01
+    endEffector -0.03 0 0.015 0.01 0.0
 
 /End_RB
 
