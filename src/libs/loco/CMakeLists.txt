@@ -4,6 +4,8 @@ project(loco)
 
 set(CRL_TARGET_NAME ${PROJECT_NAME})
 
+find_package(Ceres)
+
 file(
         GLOB_RECURSE
         CRL_SOURCES #
@@ -31,6 +33,7 @@ list(
         CRL_TARGET_LINK_LIBS #
         PUBLIC "crl::utils" #
         PUBLIC "crl::gui" #
+        PUBLIC Ceres::ceres
 )
 
 # compile definitions
