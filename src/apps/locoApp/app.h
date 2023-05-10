@@ -152,9 +152,10 @@ public:
         idx = (idx + 1) % numSamples;
 
 
-
         static double x_vals[numSamples]{};
         static double y_vals[numSamples]{};
+
+        static double velocities[numSamples]{}, accelerations[numSamples]{};
 
 
         static auto joint = robot_->getLimbByName("rLowerLeg")->jointList[0];
@@ -197,13 +198,42 @@ public:
         x_vals[idx] = 100 * fmod(t, 0.7);
         y_vals[idx] = joint->getCurrentJointAngle()*180.0*M_1_PI;
 
+        velocities[idx] = (y_vals[(idx + 1)%numSamples] - y_vals[(idx + numSamples - 1)%numSamples])/(2 * dt);
+//        accelerations[idx] = (velocities[(idx + 1)%numSamples] - velocities[(idx + numSamples - 1)%numSamples])/(2 * dt);
 
 
         if (ImPlot::BeginPlot("Joint Angle Plot")) {
-            ImPlot::SetupAxesLimits(0, 70, *std::min_element(std::begin(y_vals), std::end(y_vals)) - 10, *std::max_element(std::begin(y_vals), std::end(y_vals)) + 10, ImPlotCond_Always);
+
+            double plotMax = std::max(
+                    *std::max_element(std::begin(y_vals), std::end(y_vals)), //std::max(
+                    *std::max_element(std::begin(velocities), std::end(velocities))
+//                    *std::max_element(std::begin(accelerations), std::end(accelerations)))
+                ), plotMin = std::min(
+                    *std::min_element(std::begin(y_vals), std::end(y_vals)), //std::min(
+                    *std::min_element(std::begin(velocities), std::end(velocities))
+//                    *std::min_element(std::begin(accelerations), std::end(accelerations)))
+                );
+
+            std::cout << *std::min_element(std::begin(y_vals), std::end(y_vals)) << '/'
+                      << *std::min_element(std::begin(velocities), std::end(velocities)) << '/'
+                      << *std::min_element(std::begin(accelerations), std::end(accelerations)) << '\n';
+
+            ImPlot::SetupAxesLimits(0, 70, plotMin - 10, plotMax + 10, ImPlotCond_Always);
+
             ImPlot::PlotScatter(joint->name.c_str(), x_vals, y_vals, numSamples);
+            ImPlot::PlotScatter("Velocity", x_vals, velocities, numSamples);
+//            ImPlot::PlotScatter("Acceleration", x_vals, accelerations, numSamples);
+
+
             double current_x[] = {x_vals[idx]}, current_y[] = {y_vals[idx]};
             ImPlot::PlotScatter("", current_x, current_y, 1);
+
+            double current_y_vel[] = {velocities[idx]};
+            ImPlot::PlotScatter("", current_x, current_y_vel, 1);
+
+
+
+
 
             ImPlot::EndPlot();
         }
