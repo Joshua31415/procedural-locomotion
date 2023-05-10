@@ -33,8 +33,15 @@ list(
         CRL_TARGET_LINK_LIBS #
         PUBLIC "crl::utils" #
         PUBLIC "crl::gui" #
+)
+
+if(UNIX)
+list(
+        APPEND
+        CRL_TARGET_LINK_LIBS #
         PUBLIC Ceres::ceres
 )
+endif()
 
 # compile definitions
 list(
