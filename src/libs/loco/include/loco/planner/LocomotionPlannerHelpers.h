@@ -37,16 +37,18 @@ public:
     LimbMotionProperties() {
         // p: this trajectory should be parameterized...
         // TODO: change trajectory of the foot here
-        swingFootHeightTraj.addKnot(0, 0);
-        swingFootHeightTraj.addKnot(0.5, 1.0);
-        swingFootHeightTraj.addKnot(1.0, 0);
+
+        for(int i = 0; i < 100; ++i){
+            swingFootHeightTraj.addKnot(i*0.7/100, std::sin(M_PI*i/100));
+        }
+
 
         swingHeightOffsetTrajDueToFootSize.addKnot(0, 1.0);
         swingHeightOffsetTrajDueToFootSize.addKnot(0.5, 1.0);
         // when the transition from swing to stance happens, in order to make
         // sure a firm contact is established, the contactSafetyFactor(default = 0.7)
         //here makes the contact be pretty firm.
-        swingHeightOffsetTrajDueToFootSize.addKnot(1.0, contactSafetyFactor);
+        swingHeightOffsetTrajDueToFootSize.addKnot(1.0, 0.7);
     }
 };
 

@@ -145,7 +145,69 @@ public:
     void drawImPlot() override {
         crl::gui::ShadowApplication::drawImPlot();
 
+
+        constexpr size_t numSamples = static_cast<size_t>(60*0.7);
+
+        static size_t idx = 0;
+        idx = (idx + 1) % numSamples;
+
+
+
+        static double x_vals[numSamples]{};
+        static double y_vals[numSamples]{};
+
+
+        static auto joint = robot_->getLimbByName("rLowerLeg")->jointList[0];
+
+        static auto joints = [&](){
+
+            using jointPtr = std::shared_ptr<crl::loco::RBJoint>;
+            using rbPtr = std::shared_ptr<crl::loco::RB>;
+            std::vector<jointPtr> jointVec{};
+
+            std::function<void(const rbPtr&)> addChildJoints = [&addChildJoints, &jointVec](const rbPtr& rb){
+                if(!rb) return;
+
+                for(const auto& joint : rb->cJoints){
+                    //continue if RB is already in list
+                    if(!(std::find(jointVec.begin(), jointVec.end(), joint) == jointVec.end())) continue;
+                    jointVec.push_back(joint);
+                    addChildJoints(joint->child);
+                }
+            };
+            addChildJoints(robot_->getTrunk());
+
+            return jointVec;
+        }();
+
+        static double t = 0.0;
+        t += dt;
+
         ImGui::Begin("Plots");
+        if (ImGui::BeginMenu("Select Joint"))
+        {
+            for(const auto &j : joints){
+                if(ImGui::MenuItem(j->name.c_str())){ joint = j;}
+            }
+            ImGui::EndMenu();
+        }
+
+
+
+        x_vals[idx] = 100 * fmod(t, 0.7);
+        y_vals[idx] = joint->getCurrentJointAngle()*180.0*M_1_PI;
+
+
+
+        if (ImPlot::BeginPlot("Joint Angle Plot")) {
+            ImPlot::SetupAxesLimits(0, 70, *std::min_element(std::begin(y_vals), std::end(y_vals)) - 10, *std::max_element(std::begin(y_vals), std::end(y_vals)) + 10, ImPlotCond_Always);
+            ImPlot::PlotScatter(joint->name.c_str(), x_vals, y_vals, numSamples);
+            double current_x[] = {x_vals[idx]}, current_y[] = {y_vals[idx]};
+            ImPlot::PlotScatter("", current_x, current_y, 1);
+
+            ImPlot::EndPlot();
+        }
+
         // here, you can draw plots
         ImGui::End();
     }
