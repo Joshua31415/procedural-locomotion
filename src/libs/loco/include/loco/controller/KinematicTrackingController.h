@@ -17,6 +17,18 @@ public:
     std::shared_ptr<LeggedRobot> robot;
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
 
+    double cycle = 0;
+    P3D rFootTarget;
+    P3D rFootFinal;
+    P3D rFootInitial;
+    P3D lFootTarget;
+    P3D lFootFinal;
+    P3D lFootInitial;
+    bool rFootSet = false;
+    bool lFootSet = false;
+    bool lLocked = false;
+    bool rLocked = false;
+
 public:
     /**
      * constructor
@@ -44,13 +56,33 @@ public:
 
         robot->setRootState(targetPos, targetOrientation);
 
-        // now we solve inverse kinematics for each limbs
-        for (uint i = 0; i < robot->getLimbCount(); i++) {
-            P3D target = planner->getTargetLimbEEPositionAtTime(robot->getLimb(i), planner->getSimTime() + dt);
+        // std::cout << cycle << "\n";
+        auto lFoot = robot->getLimb(1);
+        auto rFoot = robot->getLimb(0);
+        
+        if (lLocked) {
+            // stance phase
+            cycle += dt;
+            if (cycle >= 1.0) {
+                lLocked = false;
+                lFootInitial = lFoot->getEEWorldPos();
+                cycle = cycle - int(cycle);
+            }
+        } else {
+            // swing phase
+            double frac = std::min(std::max(2.0 * cycle, 0.0), 1.0);
+            lFootFinal = lFoot->limbRoot->getWorldCoordinates() + lFoot->defaultEEOffsetWorld;
+            lFootTarget = lFootInitial * (1.0 - frac) + lFootFinal * frac;
 
-            ikSolver->addEndEffectorTarget(robot->getLimb(i)->eeRB, robot->getLimb(i)->ee->endEffectorOffset, target);
+
+            cycle += dt;
+            if (cycle >= 0.5) {
+                lFootTarget = lFoot->getEEWorldPos();
+                lLocked = true;
+            }
         }
 
+        ikSolver->addEndEffectorTarget(lFoot->eeRB, lFoot->ee->endEffectorOffset, lFootTarget);
         ikSolver->solve();
     }
 
