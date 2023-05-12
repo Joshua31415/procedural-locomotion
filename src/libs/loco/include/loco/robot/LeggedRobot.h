@@ -24,6 +24,9 @@ struct RobotLimb {
     // corresponds to a default step offset. Expressed in the coordinate frame
     // of the trunk...
     V3D defaultEEOffset;
+    V3D defaultEEOffsetWorld;
+    // RB of the root of the limb
+    std::shared_ptr<RB>limbRoot;
     // this is ptr to ee we use for locomotion related tasks
     RBEndEffector *ee = nullptr;
 
@@ -34,6 +37,7 @@ struct RobotLimb {
         this->name = name;
         this->eeRB = eeRB;
         this->ee = &eeRB->rbProps.endEffectorPoints[0];
+        this->limbRoot = limbRoot;
 
         std::shared_ptr<RB> tmpRB = eeRB;
         while (tmpRB != limbRoot) {
@@ -42,7 +46,8 @@ struct RobotLimb {
         }
 
         P3D eePos = ee->endEffectorOffset;
-        defaultEEOffset = limbRoot->getLocalCoordinates(V3D(limbRoot->getWorldCoordinates(P3D()), eeRB->getWorldCoordinates(eePos)));
+        defaultEEOffsetWorld = V3D(limbRoot->getWorldCoordinates(P3D()), eeRB->getWorldCoordinates(eePos));
+        defaultEEOffset = limbRoot->getLocalCoordinates(defaultEEOffsetWorld);
     }
 
     /**
