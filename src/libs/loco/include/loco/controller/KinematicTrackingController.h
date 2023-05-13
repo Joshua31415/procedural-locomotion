@@ -5,6 +5,7 @@
 #include <loco/planner/LocomotionTrajectoryPlanner.h>
 #include <loco/robot/RB.h>
 #include <loco/robot/RBJoint.h>
+#include <crl-basic/gui/renderer.h>
 
 namespace crl::loco {
 
@@ -18,18 +19,20 @@ public:
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
 
     double t = 0;
-    double cycleLength = 1;
-    double stanceStart = 0.0;
-    double stanceEnd = 0.5;
-    double swingStart = 0.5;
-    double swingEnd = 1.0;
+    double cycleLength = 2; // in seconds
+    double stanceStart = 0.0; // in percent
+    double swingStart = 0.5; // in percent
+    double heelStrikeStart = 0.90; // in percent
 
     std::array<P3D, 2> stanceTargets;
     std::array<P3D, 2> swingTargets;
+    std::array<P3D, 2> heelStrikeTargets;
     std::array<Trajectory3D, 2> swingTrajectories;
     std::array<std::array<int, 4>, 2> footJointIndices;
-
-    enum Phase {Stance, Swing};
+    std::array<P3D, 2> toeTargets;
+    std::array<P3D, 2> heelTargets;
+    std::array<V3D, 2> defaultHeelToToe;
+    enum Phase {Stance, Swing, HeelStrike};
     int its = 0;
 
 public:
@@ -41,10 +44,15 @@ public:
         ikSolver = std::make_shared<IK_Solver>(robot);
 
         for (int i = 0; i < 2; ++i) {
-            P3D p = robot->getLimb(i)->getEEWorldPos();
-            stanceTargets[i] = p;
-            swingTrajectories[i].addKnot(0, V3D(p));
-            swingTrajectories[i].addKnot(1, V3D(p));
+            P3D pToes = robot->getLimb(i)->getEEWorldPos();
+            P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
+            stanceTargets[i] = pToes;
+            defaultHeelToToe[i] = V3D(pHeel, pToes);
+            heelStrikeTargets[i] = pToes;
+            heelTargets[i] = pHeel;
+            toeTargets[i] = pToes;
+            // swingTrajectories[i].addKnot(0, V3D(pToes));
+            // swingTrajectories[i].addKnot(1, V3D(pToes));
         }
 
         std::array<char *, 4> lJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint"};
@@ -78,58 +86,126 @@ public:
         // use the toe as the targeted endeffector in the stance phase
         // use the heel as the targeted endeffector in the swing phase
         // idx i == 0 <-> right leg
+        // before the phase
         for (int i = 0; i < 2; ++i) {
             Phase currentPhase = getPhase(i, t);
-            Phase nextPhase = getPhase(i, t + dt);
-
-            if (currentPhase == Phase::Stance && nextPhase == Phase::Stance) {
-                // foot stays still during stance phase
-                setStanceTarget(i);
-                ikSolver->solve();
+            if (currentPhase == Phase::Stance) {
                 fixToeAngle(i);
-            } else if (currentPhase == Phase::Stance && nextPhase == Phase::Swing) {
-                computeSwingTrajectory(i);
-                setSwingTarget(i);
-                ikSolver->solve();
-            } else if (currentPhase == Phase::Swing && nextPhase == Phase::Swing) {
-                setSwingTarget(i);
-                ikSolver->solve();
-            } else if (currentPhase == Phase::Swing && nextPhase == Phase::Stance) {
-                // foot stays still during stance phase
-                computeStanceTarget(i);
-                setStanceTarget(i);
-                ikSolver->solve();
-                fixToeAngle(i);
+                setToeTarget(i, toeTargets[i]);
+            } else if (currentPhase == Phase::Swing) {
+                setHeelTarget(i, heelTargets[i]);
+            } else if (currentPhase == Phase::HeelStrike) {
+                setToeTarget(i, toeTargets[i]);
+                setHeelTarget(i, heelTargets[i]);
             }
         }
+        ikSolver->solve();
+        // preparation for the next phase depending on the transition
+        for (int i = 0; i < 2; ++i) {
+            Phase nextPhase = getPhase(i, t + dt);
+            toeTargets[i] = computeToeTarget(i, nextPhase);
+            heelTargets[i] = computeHeelTarget(i, nextPhase);
+        }
+
+
 
     }
 
-    void computeSwingTrajectory(int i) {
+    void setHeelTarget(int i, P3D pTarget) {
+        auto heel = robot->getLimb(i + 2);
+        ikSolver->addEndEffectorTarget(heel->eeRB, heel->ee->endEffectorOffset, pTarget);
+    }
+    
+    void setToeTarget(int i, P3D pTarget) {
         auto foot = robot->getLimb(i);
-
-        swingTrajectories[i].clear();
-        P3D pStart = foot->getEEWorldPos();
-        V3D offset(pStart, foot->limbRoot->getWorldCoordinates() + foot->defaultEEOffsetWorld);
-        P3D pEnd = pStart + offset * 2;
-        swingTrajectories[i].addKnot(0, V3D(pStart));
-        swingTrajectories[i].addKnot(1, V3D(pEnd));
+        ikSolver->addEndEffectorTarget(foot->eeRB, foot->ee->endEffectorOffset, pTarget); 
     }
 
-    void setSwingTarget(int i) {
-        auto foot = robot->getLimb(i);
-        double cyclePercent = getCyclePercent(i, t);
-        P3D swingTarget = getP3D(swingTrajectories[i].evaluate_linear(remap(cyclePercent, swingStart, swingEnd)));
-        ikSolver->addEndEffectorTarget(foot->eeRB, foot->ee->endEffectorOffset, swingTarget);
+    P3D computeToeTarget(int i, Phase nextPhase) {
+        auto toes = robot->getLimb(i);
+        auto heel = robot->getLimb(i + 2);
+
+        if (nextPhase == Phase::Stance) {
+            return toes->getEEWorldPos();
+        } else if (nextPhase == Phase::Swing) {
+            return P3D(0, 0, 0);
+        } else if (nextPhase == Phase::HeelStrike) {
+            P3D pInitial = toes->getEEWorldPos();
+            P3D pFinal = heel->getEEWorldPos() + defaultHeelToToe[i];
+            double cyclePercent = getCyclePercent(i, t);
+            return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
+        }
+    }
+
+    P3D computeHeelTarget(int i, Phase nextPhase) {
+        auto heel = robot->getLimb(i + 2);
+        if (nextPhase == Phase::Stance) {
+            return P3D(0, 0, 0);
+        } else if (nextPhase == Phase::Swing) {
+            P3D pStart = heel->getEEWorldPos();
+            P3D pEnd = (heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
+                        + 0.1 * (robot->getHeading() * robot->getForward())                // offset in heading direction
+            );
+            return lerp(pStart, pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
+        } else if (nextPhase == Phase::HeelStrike) {
+            P3D pHeel = heel->getEEWorldPos();
+            return pHeel;
+        }
     }
 
     void computeStanceTarget(int i) {
         auto foot = robot->getLimb(i);
         stanceTargets[i] = foot->getEEWorldPos();
     }
+
     void setStanceTarget(int i) {
         auto foot = robot->getLimb(i);
         ikSolver->addEndEffectorTarget(foot->eeRB, foot->ee->endEffectorOffset, stanceTargets[i]);
+    }
+    
+    void computeSwingTrajectory(int i) {
+        auto foot = robot->getLimb(i + 2);
+
+        swingTrajectories[i].clear();
+        P3D pStart = foot->getEEWorldPos();
+        V3D offset(pStart, foot->limbRoot->getWorldCoordinates() + foot->defaultEEOffsetWorld);
+        P3D pEnd = pStart + offset * 2.1;
+        swingTrajectories[i].addKnot(0, V3D(pStart));
+        swingTrajectories[i].addKnot(1, V3D(pEnd));
+    }
+
+    void computeSwingTarget(int i) {
+        auto heel = robot->getLimb(i + 2);
+        P3D pStart = heel->getEEWorldPos();
+        P3D pEnd = (heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
+                    + 0.05 * (robot->getHeading() * robot->getForward())                // offset in heading direction
+        );
+
+        swingTargets[i] = lerp(pStart, pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
+    }
+
+    void lockSwingTargetForHeelStrike(int i) {
+        auto heel = robot->getLimb(i + 2);
+        P3D pHeel = heel->getEEWorldPos();
+        swingTargets[i] = pHeel;
+    }
+
+    void setSwingTarget(int i) {
+        auto heel = robot->getLimb(i + 2);
+        ikSolver->addEndEffectorTarget(heel->eeRB, heel->ee->endEffectorOffset, swingTargets[i]);
+    }
+
+    void computeHeelStrikeTarget(int i) {
+        auto heel = robot->getLimb(i + 2);
+        heelStrikeTargets[i] = heel->getEEWorldPos() + defaultHeelToToe[i];
+    }
+
+    void setHeelStrikeTarget(int i) {
+        auto toes = robot->getLimb(i);
+        double cyclePercent = getCyclePercent(i, t);
+        // maybe fix the starting position?
+        P3D pTarget = lerp(toes->getEEWorldPos(), heelStrikeTargets[i], remap(cyclePercent, heelStrikeStart, 1.0));
+        ikSolver->addEndEffectorTarget(toes->eeRB, toes->ee->endEffectorOffset, pTarget);
     }
 
     double remap(double t, double a, double b) {
@@ -150,11 +226,15 @@ public:
     }
 
     bool isStance(double cyclePercent) {
-        return stanceStart <= cyclePercent && cyclePercent < stanceEnd;
+        return stanceStart <= cyclePercent && cyclePercent < swingStart;
     }
 
     bool isSwing(double cyclePercent) {
-        return swingStart <= cyclePercent && cyclePercent < swingEnd;
+        return swingStart <= cyclePercent && cyclePercent < heelStrikeStart;
+    }
+    
+    bool isHeelStrike(double cyclePercent) {
+        return heelStrikeStart <= cyclePercent && cyclePercent < 1.0;
     }
 
     Phase getPhase(int i, double t) {
@@ -163,6 +243,8 @@ public:
             return Phase::Stance;
         } else if (isSwing(cyclePercent)) {
             return Phase::Swing;
+        } else if (isHeelStrike(cyclePercent)) {
+            return Phase::HeelStrike;
         }
     }
 
