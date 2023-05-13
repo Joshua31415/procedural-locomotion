@@ -42,10 +42,6 @@ public:
 
         for (int i = 0; i < 2; ++i) {
             P3D p = robot->getLimb(i)->getEEWorldPos();
-            footTargets[i] = p;
-            footInitials[i] = p;
-            footFinals[i] = p; 
-            footLocked[i] = true;
             stanceTargets[i] = p;
             swingTrajectories[i].addKnot(0, V3D(p));
             swingTrajectories[i].addKnot(1, V3D(p));
@@ -83,9 +79,6 @@ public:
         // use the heel as the targeted endeffector in the swing phase
         // idx i == 0 <-> right leg
         for (int i = 0; i < 2; ++i) {
-            auto toes = robot->getLimb(i);
-            auto ankle = robot->getLimb(i);
-
             Phase currentPhase = getPhase(i, t);
             Phase nextPhase = getPhase(i, t + dt);
 
