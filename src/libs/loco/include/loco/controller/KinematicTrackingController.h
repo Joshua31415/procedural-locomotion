@@ -19,7 +19,7 @@ public:
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
 
     double t = 0;
-    double cycleLength = 2; // in seconds
+    double cycleLength = 1.25; // in seconds
     double stanceStart = 0.0; // in percent
     double swingStart = 0.5; // in percent
     double heelStrikeStart = 0.90; // in percent
@@ -31,6 +31,8 @@ public:
     std::array<std::array<int, 4>, 2> footJointIndices;
     std::array<P3D, 2> toeTargets;
     std::array<P3D, 2> heelTargets;
+    std::array<P3D, 2> heelStarts;
+    std::array<bool, 2> heelStartSet;
     std::array<V3D, 2> defaultHeelToToe;
     enum Phase {Stance, Swing, HeelStrike};
     int its = 0;
@@ -50,6 +52,8 @@ public:
             defaultHeelToToe[i] = V3D(pHeel, pToes);
             heelStrikeTargets[i] = pToes;
             heelTargets[i] = pHeel;
+            heelStarts[i] = pHeel;
+            heelStartSet[i] = false;
             toeTargets[i] = pToes;
             // swingTrajectories[i].addKnot(0, V3D(pToes));
             // swingTrajectories[i].addKnot(1, V3D(pToes));
@@ -90,16 +94,24 @@ public:
         for (int i = 0; i < 2; ++i) {
             Phase currentPhase = getPhase(i, t);
             if (currentPhase == Phase::Stance) {
-                fixToeAngle(i);
+                makeToesParallelToGround(i);
                 setToeTarget(i, toeTargets[i]);
             } else if (currentPhase == Phase::Swing) {
+                moveToesBackToDefault(i);
                 setHeelTarget(i, heelTargets[i]);
             } else if (currentPhase == Phase::HeelStrike) {
-                setToeTarget(i, toeTargets[i]);
+                // setToeTarget(i, toeTargets[i]);
                 setHeelTarget(i, heelTargets[i]);
             }
         }
         ikSolver->solve();
+        for (int i = 0; i < 2; ++i) {
+            Phase currentPhase = getPhase(i, t);
+            if (currentPhase == Phase::HeelStrike) {
+                setAnkleAngleDuringHeelStrike(i);
+            }
+        }
+
         // preparation for the next phase depending on the transition
         for (int i = 0; i < 2; ++i) {
             Phase nextPhase = getPhase(i, t + dt);
@@ -130,6 +142,7 @@ public:
         } else if (nextPhase == Phase::Swing) {
             return P3D(0, 0, 0);
         } else if (nextPhase == Phase::HeelStrike) {
+            // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             P3D pFinal = heel->getEEWorldPos() + defaultHeelToToe[i];
             double cyclePercent = getCyclePercent(i, t);
@@ -142,15 +155,65 @@ public:
         if (nextPhase == Phase::Stance) {
             return P3D(0, 0, 0);
         } else if (nextPhase == Phase::Swing) {
-            P3D pStart = heel->getEEWorldPos();
+            if (!heelStartSet[i]) {
+                // not sure if this should interpolate between the current position and the target 
+                // or the start position of the swing phase and the target
+                P3D pStart = heel->getEEWorldPos();
+                heelStarts[i] = pStart;
+                heelStartSet[i] = true; 
+            }
             P3D pEnd = (heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
-                        + 0.1 * (robot->getHeading() * robot->getForward())                // offset in heading direction
+                        + 0.05 * (robot->getHeading() * robot->getForward())                // offset in heading direction
             );
-            return lerp(pStart, pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
+            return lerp(heelStarts[i], pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
         } else if (nextPhase == Phase::HeelStrike) {
             P3D pHeel = heel->getEEWorldPos();
+            heelStartSet[i] = false;
             return pHeel;
         }
+    }
+
+    
+    void setAnkleAngleDuringHeelStrike(int footIdx) {
+        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
+        dVector q;
+        gcrr.getQ(q);
+        double angle = 0;
+        for (int i = 0; i < 2; ++i) {
+            angle += q(footJointIndices[footIdx][i] + 6);
+        }
+        double cyclePercent = getCyclePercent(footIdx, t);
+        double angleTarget = -angle;
+        double angleCurrent = q(6 + footJointIndices[footIdx][2]);
+
+        q(6 + footJointIndices[footIdx][2]) = lerp(angleCurrent, angleTarget, remap(cyclePercent, heelStrikeStart, 1.0));
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
+    }
+
+    void makeToesParallelToGround(int footIdx) {
+        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
+        dVector q;
+        gcrr.getQ(q);
+        double angle = 0;
+        for (int i = 0; i < 3; ++i) {
+            angle += q(footJointIndices[footIdx][i] + 6);
+        }
+        q(6 + footJointIndices[footIdx][3]) = -angle;
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
+    }
+
+    void moveToesBackToDefault(int footIdx) {
+        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
+        dVector q;
+        gcrr.getQ(q);
+        double angleCurrent = q(6 + footJointIndices[footIdx][3]);
+        double angleTarget = 0.0;
+        double cyclePercent = getCyclePercent(footIdx, t);
+        q(6 + footJointIndices[footIdx][3]) = lerp(angleCurrent, angleTarget, remap(cyclePercent, swingStart, heelStrikeStart));
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();        
     }
 
     void computeStanceTarget(int i) {
@@ -212,8 +275,9 @@ public:
         // remap t in [a, b] to [0, 1]
         return (t - a) / (b - a);
     }
-
-    P3D lerp(P3D a, P3D b, double t) {
+    
+    template <typename T>
+    T lerp(T  a, T b, double t) {
         return a * (1.0 - t) + b * t;
     }
 
@@ -246,19 +310,6 @@ public:
         } else if (isHeelStrike(cyclePercent)) {
             return Phase::HeelStrike;
         }
-    }
-
-    void fixToeAngle(int footIdx) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
-        dVector q;
-        gcrr.getQ(q);
-        double angle = 0;
-        for (int i = 0; i < 3; ++i) {
-            angle += q(footJointIndices[footIdx][i] + 6);
-        }
-        q(6 + footJointIndices[footIdx][3]) = -angle;
-        gcrr.setQ(q);
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
     void advanceInTime(double dt) override {
