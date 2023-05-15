@@ -145,20 +145,21 @@ public:
     void drawImPlot() override {
         crl::gui::ShadowApplication::drawImPlot();
 
+        const double gaitCycleLength = controller_->cycleLength;
 
-        constexpr size_t numSamples = static_cast<size_t>(60*0.7);
+
+        const auto numSamples = static_cast<size_t>(60*gaitCycleLength);
+        assert(gaitCycleLength == numSamples.size());
 
         static size_t idx = 0;
         idx = (idx + 1) % numSamples;
 
 
-        static double x_vals[numSamples]{};
-        static double y_vals[numSamples]{};
-
-        static double velocities[numSamples]{}, accelerations[numSamples]{};
+        static std::vector<double> x_vals(numSamples), y_vals(numSamples),
+                                   velocities(numSamples), accelerations(numSamples);
 
 
-        static auto joint = robot_->getLimbByName("rLowerLeg")->jointList[0];
+        static auto joint = robot_->getLimbByName("rLowerLeg")->jointList[3];
 
         static auto joints = [&](){
 
@@ -181,8 +182,6 @@ public:
             return jointVec;
         }();
 
-        static double t = 0.0;
-        t += dt;
 
         ImGui::Begin("Plots");
         if (ImGui::BeginMenu("Select Joint"))
@@ -194,8 +193,7 @@ public:
         }
 
 
-
-        x_vals[idx] = 100 * fmod(t, 0.7);
+        x_vals[idx] = 100 * fmod(controller_->t, gaitCycleLength)/gaitCycleLength;
         y_vals[idx] = joint->getCurrentJointAngle()*180.0*M_1_PI;
 
         velocities[idx] = (y_vals[(idx + 1)%numSamples] - y_vals[(idx + numSamples - 1)%numSamples])/(2 * dt);
@@ -204,35 +202,33 @@ public:
 
         if (ImPlot::BeginPlot("Joint Angle Plot")) {
 
-            double plotMax = std::max(
-                    *std::max_element(std::begin(y_vals), std::end(y_vals)), //std::max(
-                    *std::max_element(std::begin(velocities), std::end(velocities))
-//                    *std::max_element(std::begin(accelerations), std::end(accelerations)))
-                ), plotMin = std::min(
-                    *std::min_element(std::begin(y_vals), std::end(y_vals)), //std::min(
-                    *std::min_element(std::begin(velocities), std::end(velocities))
-//                    *std::min_element(std::begin(accelerations), std::end(accelerations)))
-                );
+            double plotMax = *std::max_element(std::begin(y_vals), std::end(y_vals));
+            double plotMin = *std::min_element(std::begin(y_vals), std::end(y_vals));
 
-            std::cout << *std::min_element(std::begin(y_vals), std::end(y_vals)) << '/'
-                      << *std::min_element(std::begin(velocities), std::end(velocities)) << '/'
-                      << *std::min_element(std::begin(accelerations), std::end(accelerations)) << '\n';
+//            double plotMax = std::max(
+//                    *std::max_element(std::begin(y_vals), std::end(y_vals)), //std::max(
+//                    *std::max_element(std::begin(velocities), std::end(velocities))
+////                    *std::max_element(std::begin(accelerations), std::end(accelerations)))
+//                ), plotMin = std::min(
+//                    *std::min_element(std::begin(y_vals), std::end(y_vals)), //std::min(
+//                    *std::min_element(std::begin(velocities), std::end(velocities))
+////                    *std::min_element(std::begin(accelerations), std::end(accelerations)))
+//                );
 
-            ImPlot::SetupAxesLimits(0, 70, plotMin - 10, plotMax + 10, ImPlotCond_Always);
+//            std::cout << *std::min_element(std::begin(y_vals), std::end(y_vals)) << '/'
+//                      << *std::min_element(std::begin(velocities), std::end(velocities)) << '/'
+//                      << *std::min_element(std::begin(accelerations), std::end(accelerations)) << '\n';
 
-            ImPlot::PlotScatter(joint->name.c_str(), x_vals, y_vals, numSamples);
-            ImPlot::PlotScatter("Velocity", x_vals, velocities, numSamples);
+            ImPlot::SetupAxesLimits(0, 100, plotMin - 10, plotMax + 10, ImPlotCond_Always);
+
+            ImPlot::PlotScatter(joint->name.c_str(), x_vals.data(), y_vals.data(), static_cast<int>(numSamples));
+//            ImPlot::PlotScatter("Velocity", x_vals.data(), velocities.data(), numSamples);
 //            ImPlot::PlotScatter("Acceleration", x_vals, accelerations, numSamples);
 
 
-            double current_x[] = {x_vals[idx]}, current_y[] = {y_vals[idx]};
-            ImPlot::PlotScatter("", current_x, current_y, 1);
+            double current_x[] = {x_vals[idx]};
 
-            double current_y_vel[] = {velocities[idx]};
-            ImPlot::PlotScatter("", current_x, current_y_vel, 1);
-
-
-
+            ImPlot::PlotVLines("Current time", current_x, 1);
 
 
             ImPlot::EndPlot();
@@ -242,7 +238,7 @@ public:
         ImGui::End();
     }
 
-    virtual bool drop(int count, const char **fileNames) override {
+    bool drop(int count, const char **fileNames) override {
         return true;
     }
 
@@ -261,8 +257,8 @@ private:
         }
 
         // add legs
-        for (int i = 0; i < m.legs.size(); i++) {
-            robot_->addLimb(m.legs[i].first, m.legs[i].second);
+        for (const auto& leg : m.legs) {
+            robot_->addLimb(leg.first, leg.second);
         }
 
         // setup planner and controller

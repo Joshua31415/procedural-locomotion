@@ -21,7 +21,7 @@ public:
     double t = 0;
     double cycleLength = 1.25; // in seconds
     double stanceStart = 0.0; // in percent
-    double swingStart = 0.5; // in percent
+    double swingStart = 0.6; // in percent
     double heelStrikeStart = 0.90; // in percent
 
     std::array<P3D, 2> stanceTargets;
@@ -43,7 +43,7 @@ public:
     /**
      * constructor
      */
-    KinematicTrackingController(const std::shared_ptr<LocomotionTrajectoryPlanner> &planner) : LocomotionController(planner) {
+    explicit KinematicTrackingController(const std::shared_ptr<LocomotionTrajectoryPlanner> &planner) : LocomotionController(planner) {
         this->robot = planner->robot;
         ikSolver = std::make_shared<IK_Solver>(robot);
 
@@ -63,8 +63,8 @@ public:
             swingTrajectories[i].addKnot(1, V3D(pHeel));
         }
 
-        std::array<char *, 4> lJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint"};
-        std::array<char *, 4> rJoints = {"rHip_1", "rKnee", "rAnkle_1", "rToeJoint"};
+        std::array lJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint"};
+        std::array rJoints = {"rHip_1", "rKnee", "rAnkle_1", "rToeJoint"};
         for (int i = 0; i < 4; ++i) {
             int lIdx = robot->getJointIndex(lJoints[i]);
             int rIdx = robot->getJointIndex(rJoints[i]);
@@ -76,7 +76,7 @@ public:
     /**
      * destructor
      */
-    ~KinematicTrackingController(void) override = default;
+    ~KinematicTrackingController() override = default;
 
     void generateMotionTrajectories(double dt = 1.0 / 30) override {
         planner->planGenerationTime = planner->simTime;
@@ -97,16 +97,19 @@ public:
         // before the phase
         for (int i = 0; i < 2; ++i) {
             Phase currentPhase = getPhase(i, t);
-            if (currentPhase == Phase::Stance) {
+
+            switch(currentPhase) {
+            break; case Phase::Stance:
                 makeToesParallelToGround(i);
                 setToeTarget(i, toeTargets[i]);
-            } else if (currentPhase == Phase::Swing) {
-                moveToesBackToDefault(i);
-                setHeelTarget(i, heelTargets[i]);
-            } else if (currentPhase == Phase::HeelStrike) {
-                // setToeTarget(i, toeTargets[i]);
-                setHeelTarget(i, heelTargets[i]);
+            break; case Phase::Swing:
+                    moveToesBackToDefault(i);
+                    setHeelTarget(i, heelTargets[i]);
+            break; case Phase::HeelStrike:
+                    setToeTarget(i, toeTargets[i]);
+                    setHeelTarget(i, heelTargets[i]);
             }
+
         }
         ikSolver->solve();
         for (int i = 0; i < 2; ++i) {
@@ -189,11 +192,14 @@ public:
         auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
 
-        if (nextPhase == Phase::Stance) {
+        switch(nextPhase){
+        break;case Phase::Stance:
             return toes->getEEWorldPos();
-        } else if (nextPhase == Phase::Swing) {
+
+        break;case Phase::Swing:
             return P3D(0, 0, 0);
-        } else if (nextPhase == Phase::HeelStrike) {
+
+        break;case Phase::HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             P3D pFinal = heel->getEEWorldPos() + defaultHeelToToe[i];
@@ -323,38 +329,34 @@ public:
         ikSolver->addEndEffectorTarget(toes->eeRB, toes->ee->endEffectorOffset, pTarget);
     }
 
-    double remap(double t, double a, double b) {
+    double remap(double time, double a, double b) {
         // remap t in [a, b] to [0, 1]
-        return (t - a) / (b - a);
+        return (time - a) / (b - a);
     }
-    
+
     template <typename T>
-    T lerp(T  a, T b, double t) {
-        return a * (1.0 - t) + b * t;
+    T lerp(T  a, T b, double time) {
+        return a * (1.0 - time) + b * time;
     }
 
-    double clamp(double t, double a, double b) {
-        return std::min(std::max(t, a), b);
+    double getCyclePercent(int i, double time) const {
+        return std::fmod(i * 0.5 * cycleLength + time, cycleLength) / cycleLength;
     }
 
-    double getCyclePercent(int i, double t) {
-        return std::fmod(i * 0.5 * cycleLength + t, cycleLength) / cycleLength;
-    }
-
-    bool isStance(double cyclePercent) {
+    bool isStance(double cyclePercent) const {
         return stanceStart <= cyclePercent && cyclePercent < swingStart;
     }
 
-    bool isSwing(double cyclePercent) {
+    bool isSwing(double cyclePercent) const {
         return swingStart <= cyclePercent && cyclePercent < heelStrikeStart;
     }
     
-    bool isHeelStrike(double cyclePercent) {
+    bool isHeelStrike(double cyclePercent) const {
         return heelStrikeStart <= cyclePercent && cyclePercent < 1.0;
     }
 
-    Phase getPhase(int i, double t) {
-        double cyclePercent = getCyclePercent(i, t);
+    Phase getPhase(int i, double time) const {
+        double cyclePercent = getCyclePercent(i, time);
         if (isStance(cyclePercent)) {
             return Phase::Stance;
         } else if (isSwing(cyclePercent)) {
