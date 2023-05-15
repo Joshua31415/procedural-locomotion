@@ -32,6 +32,8 @@ public:
     std::array<P3D, 2> toeTargets;
     std::array<P3D, 2> heelTargets;
     std::array<P3D, 2> heelStarts;
+    std::array<P3D, 2> heelEnds;
+    std::array<double, 2> heelHeight;
     std::array<bool, 2> heelStartSet;
     std::array<V3D, 2> defaultHeelToToe;
     enum Phase {Stance, Swing, HeelStrike};
@@ -53,10 +55,12 @@ public:
             heelStrikeTargets[i] = pToes;
             heelTargets[i] = pHeel;
             heelStarts[i] = pHeel;
+            heelEnds[i] = pHeel;
             heelStartSet[i] = false;
             toeTargets[i] = pToes;
-            // swingTrajectories[i].addKnot(0, V3D(pToes));
-            // swingTrajectories[i].addKnot(1, V3D(pToes));
+            heelHeight[i] = pHeel.y;
+            swingTrajectories[i].addKnot(0, V3D(pHeel));
+            swingTrajectories[i].addKnot(1, V3D(pHeel));
         }
 
         std::array<char *, 4> lJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint"};
@@ -114,13 +118,61 @@ public:
 
         // preparation for the next phase depending on the transition
         for (int i = 0; i < 2; ++i) {
+            Phase currentPhase = getPhase(i, t);
             Phase nextPhase = getPhase(i, t + dt);
+            if (currentPhase == Phase::Stance && nextPhase == Phase::Swing) {
+                initializeSwingPhase(i);
+            }
+            if (nextPhase == Phase::Swing) {
+                heelTargets[i] = computeHeelTargetSwing(i);
+            } else {
+                toeTargets[i] = computeToeTarget(i, nextPhase);
+                heelTargets[i] = computeHeelTarget(i, nextPhase);    
+            }
+            /*
             toeTargets[i] = computeToeTarget(i, nextPhase);
             heelTargets[i] = computeHeelTarget(i, nextPhase);
+            */
         }
 
 
 
+    }
+
+    void initializeSwingPhase(int i) {
+        V3D velocity = planner->getTargetTrunkVelocityAtTime(planner->getSimTime() /* + dt*/);
+        V3D velocityDir = velocity.normalized();
+        auto heel = robot->getLimb(i + 2);
+
+        double stepLength = 0.1;
+        heelStarts[i] = heel->getEEWorldPos();
+        // heelEnds[i] = heelStarts[i];
+        // heelEnds[i].y = heelHeight[i];
+        // heelEnds[i] = heelEnds[i] + velocityDir * stepLength;
+        heelEnds[i] = (
+            heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // at it's default position
+            + velocity * cycleLength * (heelStrikeStart - swingStart)       // where the default will be at the end of the swing phase
+            + (robot->getHeading() * robot->getForward()) * stepLength
+        );
+
+        V3D p0 = V3D(heelStarts[i]);
+        V3D p3 = V3D(heelEnds[i]);
+        V3D p1 = lerp(p0, p3, 0.25);
+        V3D p2 = lerp(p1, p3, 0.75);
+        p1[1] += 0.1;
+        p2[1] += 0.05;
+
+        swingTrajectories[i].clear();
+        swingTrajectories[i].addKnot(0.0, p0);
+        swingTrajectories[i].addKnot(0.25, p1);
+        swingTrajectories[i].addKnot(0.75, p2);
+        swingTrajectories[i].addKnot(1.0, p3);
+    }
+
+    P3D computeHeelTargetSwing(int i) {
+        double cyclePercent = getCyclePercent(i, t);
+        // return lerp(heelStarts[i], heelEnds[i], remap(cyclePercent, swingStart, heelStrikeStart));
+        return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
     }
 
     void setHeelTarget(int i, P3D pTarget) {
