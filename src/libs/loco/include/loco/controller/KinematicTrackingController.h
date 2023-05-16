@@ -28,7 +28,7 @@ public:
 
 
     double t = 0;
-    double cycleLength = 1.25; // in seconds
+    double cycleLength = 0.75; // in seconds
     double stanceStart = 0.0; // in percent
     double swingStart = 0.6; // in percent
     double heelStrikeStart = 0.9; // in percent
@@ -94,11 +94,12 @@ public:
         planner->generateTrajectoriesFromCurrentState(dt);
     }
 
+
     void computeAndApplyControlSignals(double dt) override {
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
-        // targetPos[1] = 0.85;
+         targetPos[1] = 0.88;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos, targetOrientation);
 
@@ -114,6 +115,10 @@ public:
             break; case Phase::Stance:
                 makeToesParallelToGround(i);
                 setToesToFloor(i);
+                if(isEarlyStance(getCyclePercent(i, t))){
+                    setHeelToFloor(i);
+                    setHeelTarget(i, heelTargets[i]);
+                }
                 setToeTarget(i, toeTargets[i]);
             break; case Phase::Swing:
                 moveToesBackToDefault(i);
@@ -150,6 +155,8 @@ public:
             toeTargets[i] = computeToeTarget(i, nextPhase);
             heelTargets[i] = computeHeelTarget(i, nextPhase);
             */
+            if(nextPhase == Phase::Stance && isEarlyStance(getCyclePercent(i, t+dt)))
+                computeEarlyStanceHeelStrike(i);
         }
 
     }
@@ -230,6 +237,7 @@ public:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
+            pFinal[1] = 0;
             double cyclePercent = getCyclePercent(i, t);
             return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
         }
@@ -344,6 +352,13 @@ public:
         ikSolver->addEndEffectorTarget(heel->eeRB, heel->ee->endEffectorOffset, swingTargets[i]);
     }
 
+    void computeEarlyStanceHeelStrike(int i) {
+        auto toes = robot->getLimb(i + 2);
+        auto heel = robot->getLimb(i + 2);
+        heelTargets[i] = heel->getEEWorldPos();
+        heelTargets[i][1] = 0;
+    }
+
     void computeHeelStrikeTarget(int i) {
         auto heel = robot->getLimb(i + 2);
         heelStrikeTargets[i] = heel->getEEWorldPos() + robot->getForward() * heelToeDistance;
@@ -375,6 +390,10 @@ public:
         return stanceStart <= cyclePercent && cyclePercent < swingStart;
     }
 
+    bool isEarlyStance(double cyclePercent) const {
+        return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart)/2.0);
+    }
+
     bool isSwing(double cyclePercent) const {
         return swingStart <= cyclePercent && cyclePercent < heelStrikeStart;
     }
@@ -398,6 +417,10 @@ public:
         toeTargets[i][1] = 0;
     }
 
+    void setHeelToFloor(int i) {
+        heelTargets[i][1] = 0;
+    }
+
     void advanceInTime(double dt) override {
         planner->advanceInTime(dt);
     }
@@ -409,6 +432,7 @@ public:
             switch(getPhase(leg ,t)){
                 break;case Stance:
                     drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
+                    drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
                 break;case Swing:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 1, 0});
                 break;case HeelStrike:
