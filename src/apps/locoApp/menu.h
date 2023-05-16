@@ -31,6 +31,13 @@ const std::vector<ModelOption> modelOptions = {
             //{"rFoot", "rFoot"}, 
             {"rLowerLeg", "rLowerLeg"},
             {"lLowerLeg", "lLowerLeg"},
+//            {"lHand", "lHand"},
+//            {"rHand", "rHand"},
+            {"lLowerArm", "lLowerArm"},
+            {"rLowerArm", "rLowerArm"},
+            {"lUpperArm", "lUpperArm"},
+            {"rUpperArm", "rUpperArm"},
+
         },
         0.9,   //
         0.15,  //
