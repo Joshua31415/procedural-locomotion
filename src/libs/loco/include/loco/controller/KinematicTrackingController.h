@@ -98,7 +98,7 @@ public:
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
-        targetPos[1] = 0.85;
+        // targetPos[1] = 0.85;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos, targetOrientation);
 
@@ -183,8 +183,8 @@ public:
         V3D p3 = V3D(heelEnds[i]);
         V3D p1 = lerp(p0, p3, 0.25);
         V3D p2 = lerp(p1, p3, 0.75);
-//        p1[1] += 0.1;
-//        p2[1] += 0.05;
+        p1[1] += 0.07;
+        p2[1] += 0.03;
 
         swingTrajectories[i].clear();
         swingTrajectories[i].addKnot(0.0, p0);
