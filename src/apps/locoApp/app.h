@@ -194,7 +194,7 @@ public:
 
 
         x_vals[idx] = 100 * fmod(controller_->t, gaitCycleLength)/gaitCycleLength;
-        y_vals[idx] = joint->getCurrentJointAngle() * 180.0 * 3.14159265358979323846;
+        y_vals[idx] = joint->getCurrentJointAngle() * 180.0 * 1/3.14159265358979323846;
 
         velocities[idx] = (y_vals[(idx + 1)%numSamples] - y_vals[(idx + numSamples - 1)%numSamples])/(2 * dt);
 //        accelerations[idx] = (velocities[(idx + 1)%numSamples] - velocities[(idx + numSamples - 1)%numSamples])/(2 * dt);
