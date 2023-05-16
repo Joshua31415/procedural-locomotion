@@ -9,6 +9,14 @@
 
 namespace crl::loco {
 
+
+/* TODO
+ * Smooth transition between Phases
+ * Satisfy floor constraints (Heel strike + stance heel pos)
+ * walking backwards
+*/
+
+
 /**
  * A controller that kinematically "tracks" the objectives output by a
  * locomotion trajectory generator
@@ -18,13 +26,14 @@ public:
     std::shared_ptr<LeggedRobot> robot;
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
 
-    double heelToeDistance;
 
     double t = 0;
     double cycleLength = 1.25; // in seconds
     double stanceStart = 0.0; // in percent
     double swingStart = 0.6; // in percent
     double heelStrikeStart = 0.9; // in percent
+
+    double heelToeDistance;
 
     std::array<P3D, 2> stanceTargets;
     std::array<P3D, 2> swingTargets;
@@ -89,6 +98,7 @@ public:
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
+        targetPos[1] = 0.85;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos, targetOrientation);
 
@@ -103,6 +113,7 @@ public:
             switch(currentPhase) {
             break; case Phase::Stance:
                 makeToesParallelToGround(i);
+                setToesToFloor(i);
                 setToeTarget(i, toeTargets[i]);
             break; case Phase::Swing:
                 moveToesBackToDefault(i);
@@ -148,7 +159,9 @@ public:
         V3D velocityDir = velocity.normalized();
         auto heel = robot->getLimb(i + 2);
 
-        const double stepLength = velocity.norm() * gcycleLength;
+        const double stepLength = velocity.norm() * cycleLength;
+
+
         heelStarts[i] = heel->getEEWorldPos();
         // heelEnds[i] = heelStarts[i];
         // heelEnds[i].y = heelHeight[i];
@@ -156,8 +169,15 @@ public:
         heelEnds[i] = (
             heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // at it's default position
             + velocity * cycleLength * (heelStrikeStart - swingStart)       // where the default will be at the end of the swing phase
-            + (robot->getHeading() * robot->getForward()) * stepLength/2
         );
+
+        if((robot->getHeading() * robot->getForward()).dot(velocity) >= 0){
+            heelEnds[i] = heelEnds[i] + velocity.normalized() * stepLength/3;
+        }else{
+            assert(false && "Walking backwards is not supported yet.");
+        }
+
+        heelEnds[i][1] = 0.0;
 
         V3D p0 = V3D(heelStarts[i]);
         V3D p3 = V3D(heelEnds[i]);
@@ -365,6 +385,10 @@ public:
         } else if (isHeelStrike(cyclePercent)) {
             return Phase::HeelStrike;
         }
+    }
+
+    void setToesToFloor(int i) {
+        toeTargets[i][1] = 0;
     }
 
     void advanceInTime(double dt) override {
