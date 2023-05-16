@@ -138,6 +138,7 @@ RB
 
 	collisionSphere 0 0.16875 0 0.04	
 	collisionSphere 0 -0.16875 0 0.04
+	endEffector 0 0.16875 0 0 1.4625
 /End_RB
 
 RB
@@ -151,7 +152,8 @@ RB
 	mesh robots/bob/meshes/lLowerArm.obj
 	meshTransformation 1 0 0 0 	-0.16875 -0.16875 0
 	mass	0.8009033203125					
-	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0	
+	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0
+	endEffector 0 -0.16875 0 0 0.85
 /End_RB
 
 
@@ -171,7 +173,7 @@ RB
 	collisionSphere 0 -0.03 0 0.02	
 	collisionSphere 0 0.03 0 0.02	
 
-
+    endEffector 0 0 0 0 0.85
 /End_RB
 
 RB
@@ -207,7 +209,8 @@ RB
 	mass	2.4027099609375					
 	moi	0.02423240929842	0.00285087168216705	0.02423240929842	0	0	0	
 	collisionSphere 0 0.16875 0 0.04	
-	collisionSphere 0 -0.16875 0 0.04	
+	collisionSphere 0 -0.16875 0 0.04
+	endEffector 0 0.16875 0 0 1.4625
 /End_RB
 
 
@@ -216,7 +219,8 @@ RB
 	mesh robots/bob/meshes/rLowerArm.obj
 	meshTransformation 1 0 0 0 	0.16875 -0.16875 0
 	mass	0.8009033203125					
-	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0	
+	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0
+	endEffector 0 -0.16875 0 0 0.85
 /End_RB
 
 RB
@@ -241,6 +245,7 @@ RB
 	collisionSphere 0 -0.03 0 0.02	
 	collisionSphere 0 0.03 0 0.02
 
+    endEffector 0 -0.003 0 0 0.85
 /End_RB
 
 

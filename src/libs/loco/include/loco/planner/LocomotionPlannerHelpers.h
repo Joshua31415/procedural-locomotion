@@ -18,6 +18,8 @@ public:
     // p: this trajectory controlls how fast a foot lifts and how fast it sets
     // back down, encoded as a function of swing phase
     Trajectory1D swingFootHeightTraj;
+    Trajectory1D swingArmHeightTraj;
+    Trajectory1D swingShoulderHeightTraj;
     // p: given the total step length for a limb, ffStepLengthRatio controls the
     // stance phase when the limb should be right below the hip/shoulder (e.g.
     // default, or zero step length configuration) Should this be per limb?
@@ -29,6 +31,9 @@ public:
     Trajectory1D swingHeightOffsetTrajDueToFootSize;
 
     double swingFootHeight = 0.1;
+    double swingArmHeight = 0.1;
+    double swingShoulderHeight = 0.1;
+    double armreserveHeight = 0.085;
 
     //x and z here are expressed in a heading-independent coordinate frame
     double stepWidthOffsetX = 0.7;
@@ -42,6 +47,22 @@ public:
             swingFootHeightTraj.addKnot(i * 0.7 / 100, std::sin(3.14159265358979323846 * i / 100));
         }
 
+
+        // Arm Initial Curve
+        swingArmHeightTraj.addKnot(0, 0);
+        swingArmHeightTraj.addKnot(0.5, -0.2);
+        swingArmHeightTraj.addKnot(1.0, 0);
+
+        // Shoulder - small jitters around the horizon
+//        swingShoulderHeightTraj.addKnot(0, 0);
+//        swingShoulderHeightTraj.addKnot(0.25, -0.001);
+//        swingShoulderHeightTraj.addKnot(0.75, 0.001);
+//        swingShoulderHeightTraj.addKnot(1.0, 0);
+
+        // Shoulder - accompanying arm swing
+        swingShoulderHeightTraj.addKnot(0, 0);
+        swingShoulderHeightTraj.addKnot(0.5, -0.001);
+        swingShoulderHeightTraj.addKnot(1.0, 0);
 
         swingHeightOffsetTrajDueToFootSize.addKnot(0, 1.0);
         swingHeightOffsetTrajDueToFootSize.addKnot(0.5, 1.0);
@@ -132,9 +153,10 @@ public:
                 // in stance, we want the foot to not slip, while keeping to
                 // the ground...
                 V3D eePos = traj.getKnotValue(traj.getKnotCount() - 1);
-                eePos.y() = groundHeight + limb->ee->radius * lmp.contactSafetyFactor
-                            + limb->ee->defaultHeight;  // account for the size of the ee
                 eePos.y() = groundHeight + limb->ee->defaultHeight;
+                if(limb->name == "lLowerArm" || limb->name == "rLowerArm") {
+                    eePos.y() += 0.085; //armreserveHeight
+                }
                 while (t <= tEndOfStance && t < tEnd) {
                     traj.addKnot(t, eePos);
                     t += dt;
@@ -176,14 +198,27 @@ public:
 //                    deltaStep[0] = 0.0;
                     //deltaStep[2] = 0.0;
                     V3D eePos = oldEEPos + deltaStep;
-
-                    // add ground height + ee size as offset...
-                    eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
-                                lmp.swingHeightOffsetTrajDueToFootSize.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * limb->ee->radius +
-                                limb->ee->defaultHeight;
-                    eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
-                                limb->ee->defaultHeight;
-                    //eePos.y() = groundHeight + limb->ee->defaultHeight;
+                    // for the leg situation
+                    if(limb->name == "lLowerLeg" || limb->name == "rLowerLeg") {
+                        // add ground height + ee size as offset...
+                        // Adapt from ankle_movement branch
+                        eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_catmull_rom(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
+                                    limb->ee->defaultHeight;
+                    }
+                    else if(limb->name == "lLowerArm" || limb->name == "rLowerArm") {
+                        // TODO: Try better curve for the task
+                        // Method one:
+                        // deltaStep = (cpiSwing.getTimeLeft() * 1.2 - 0.002) * (finalEEPos - oldEEPos);
+                        // eePos = oldEEPos + deltaStep;
+                        // Method two:
+                        // eePos = oldEEPos - lmp.swingArmHeightTraj.evaluate_catmull_rom(cpiSwing.getPercentageOfTimeElapsed()) * 5 * (finalEEPos - oldEEPos);
+                        eePos.y() = groundHeight + lmp.swingArmHeightTraj.evaluate_catmull_rom(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
+                                    limb->ee->defaultHeight + 0.085; // armreserveHeight
+                    }
+                    else {
+                        eePos.y() = groundHeight + lmp.swingShoulderHeightTraj.evaluate_catmull_rom(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingShoulderHeight +
+                                    limb->ee->defaultHeight;
+                    }
                     traj.addKnot(t, eePos);
                     t += dt;
                 }
