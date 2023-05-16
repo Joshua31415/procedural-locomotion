@@ -33,7 +33,7 @@ public:
         pg.addSwingPhaseForLimb(robot->getLimbByName("fl"), 0.5 - tOffset, 1.0 + tOffset);
         pg.addSwingPhaseForLimb(robot->getLimbByName("hr"), 0.5 - tOffset, 1.0 + tOffset);
         pg.addSwingPhaseForLimb(robot->getLimbByName("fr"), 0 - tOffset, 0.5 + tOffset);
-        pg.strideDuration = 0.7;
+        pg.strideDuration = 1.25;
         return pg;
     }
 };
@@ -56,7 +56,7 @@ public:
         pg.addSwingPhaseForLimb(robot->getLimbByName("lLowerArm"), 0.5 - tOffset, 1.0 + tOffset);
         pg.addSwingPhaseForLimb(robot->getLimbByName("rUpperArm"), 0 - tOffset, 0.5 + tOffset);
         pg.addSwingPhaseForLimb(robot->getLimbByName("lUpperArm"), 0.5 - tOffset, 1.0 + tOffset);
-        pg.strideDuration = 0.7;
+        pg.strideDuration = 1.25;
         return pg;
     }
 };
