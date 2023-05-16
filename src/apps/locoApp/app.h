@@ -194,7 +194,7 @@ public:
 
 
         x_vals[idx] = 100 * fmod(controller_->t, gaitCycleLength)/gaitCycleLength;
-        y_vals[idx] = joint->getCurrentJointAngle()*180.0*M_1_PI;
+        y_vals[idx] = joint->getCurrentJointAngle() * 180.0 * 3.14159265358979323846;
 
         velocities[idx] = (y_vals[(idx + 1)%numSamples] - y_vals[(idx + numSamples - 1)%numSamples])/(2 * dt);
 //        accelerations[idx] = (velocities[(idx + 1)%numSamples] - velocities[(idx + numSamples - 1)%numSamples])/(2 * dt);
@@ -260,6 +260,20 @@ private:
         for (const auto& leg : m.legs) {
             robot_->addLimb(leg.first, leg.second);
         }
+
+        unsigned n_limbs = robot_->getLimbCount();
+        std::cout << "Printing " << n_limbs << " Limbs:\n";
+        for (unsigned i = 0; i < n_limbs; ++i) {
+            auto limb = robot_->getLimb(i);
+            std::cout << "Limb " << i << " with name " << limb->name << ":\n";
+            for (auto &joint : limb->jointList) {
+                std::cout << "Joint: " << joint->name << "\n";
+            }
+            std::cout << "eeRB:" << limb->eeRB->name << "[" << limb->getEEWorldPos().x << ", " << limb->getEEWorldPos().y << ", " << limb->getEEWorldPos().z
+                      << "]"
+                      << "\n";
+        }
+        std::cout << std::endl;
 
         // setup planner and controller
         planner_ = std::make_shared<crl::loco::SimpleLocomotionTrajectoryPlanner>(robot_);
