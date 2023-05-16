@@ -124,6 +124,7 @@ public:
             }
 
         }
+        addArmTargets(dt);
         ikSolver->solve();
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
@@ -153,7 +154,12 @@ public:
 
     }
 
-
+    void addArmTargets(double dt) {
+        for (uint i = 4; i < robot->getLimbCount(); i++) {
+            P3D target = planner->getTargetLimbEEPositionAtTime(robot->getLimb(i), planner->getSimTime() + dt);
+            ikSolver->addEndEffectorTarget(robot->getLimb(i)->eeRB, robot->getLimb(i)->ee->endEffectorOffset, target);
+        }
+    }
     void initializeSwingPhase(int i) {
         V3D velocity = planner->getTargetTrunkVelocityAtTime(planner->getSimTime() /* + dt*/);
         V3D velocityDir = velocity.normalized();
