@@ -28,7 +28,7 @@ public:
 
 
     double t = 0;
-    double cycleLength = 0.75; // in seconds
+    double cycleLength = 1.25; // in seconds
     double stanceStart = 0.0; // in percent
     double swingStart = 0.6; // in percent
     double heelStrikeStart = 0.9; // in percent
