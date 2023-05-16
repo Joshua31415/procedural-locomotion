@@ -108,12 +108,12 @@ public:
     }
 
     virtual void drawTrajectories(gui::Shader* shader) {
-        for (int i = 0; i < bFrameMotionPlan.bFramePosTrajectory.getKnotCount(); i++)
-            drawSphere(P3D() + bFrameMotionPlan.bFramePosTrajectory.getKnotValue(i), 0.02, *shader);
-
-        for (uint i = 0; i < robot->getLimbCount(); i++)
-            for (int j = 0; j < limbTrajectories[robot->getLimb(i)].getKnotCount(); j++)
-                drawSphere(P3D() + limbTrajectories[robot->getLimb(i)].getKnotValue(j), 0.01, *shader, V3D(1, 1, 0));
+//        for (int i = 0; i < bFrameMotionPlan.bFramePosTrajectory.getKnotCount(); i++)
+//            drawSphere(P3D() + bFrameMotionPlan.bFramePosTrajectory.getKnotValue(i), 0.02, *shader);
+//
+//        for (uint i = 0; i < robot->getLimbCount(); i++)
+//            for (int j = 0; j < limbTrajectories[robot->getLimb(i)].getKnotCount(); j++)
+//                drawSphere(P3D() + limbTrajectories[robot->getLimb(i)].getKnotValue(j), 0.01, *shader, V3D(1, 1, 0));
     }
 };
 

@@ -18,11 +18,13 @@ public:
     std::shared_ptr<LeggedRobot> robot;
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
 
+    double heelToeDistance;
+
     double t = 0;
     double cycleLength = 1.25; // in seconds
     double stanceStart = 0.0; // in percent
     double swingStart = 0.6; // in percent
-    double heelStrikeStart = 0.90; // in percent
+    double heelStrikeStart = 0.9; // in percent
 
     std::array<P3D, 2> stanceTargets;
     std::array<P3D, 2> swingTargets;
@@ -35,7 +37,6 @@ public:
     std::array<P3D, 2> heelEnds;
     std::array<double, 2> heelHeight;
     std::array<bool, 2> heelStartSet;
-    std::array<V3D, 2> defaultHeelToToe;
     enum Phase {Stance, Swing, HeelStrike};
     int its = 0;
 
@@ -47,11 +48,12 @@ public:
         this->robot = planner->robot;
         ikSolver = std::make_shared<IK_Solver>(robot);
 
-        for (int i = 0; i < 2; ++i) {
+        heelToeDistance = V3D(robot->getLimb(2)->getEEWorldPos(), robot->getLimb(0)->getEEWorldPos()).norm();
+
+        for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
             stanceTargets[i] = pToes;
-            defaultHeelToToe[i] = V3D(pHeel, pToes);
             heelStrikeTargets[i] = pToes;
             heelTargets[i] = pHeel;
             heelStarts[i] = pHeel;
@@ -95,7 +97,7 @@ public:
         // use the heel as the targeted endeffector in the swing phase
         // idx i == 0 <-> right leg
         // before the phase
-        for (int i = 0; i < 2; ++i) {
+        for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
 
             switch(currentPhase) {
@@ -103,16 +105,16 @@ public:
                 makeToesParallelToGround(i);
                 setToeTarget(i, toeTargets[i]);
             break; case Phase::Swing:
-                    moveToesBackToDefault(i);
-                    setHeelTarget(i, heelTargets[i]);
+                moveToesBackToDefault(i);
+                setHeelTarget(i, heelTargets[i]);
             break; case Phase::HeelStrike:
-                    setToeTarget(i, toeTargets[i]);
-                    setHeelTarget(i, heelTargets[i]);
+                setToeTarget(i, toeTargets[i]);
+                setHeelTarget(i, heelTargets[i]);
             }
 
         }
         ikSolver->solve();
-        for (int i = 0; i < 2; ++i) {
+        for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             if (currentPhase == Phase::HeelStrike) {
                 setAnkleAngleDuringHeelStrike(i);
@@ -120,7 +122,7 @@ public:
         }
 
         // preparation for the next phase depending on the transition
-        for (int i = 0; i < 2; ++i) {
+        for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             Phase nextPhase = getPhase(i, t + dt);
             if (currentPhase == Phase::Stance && nextPhase == Phase::Swing) {
@@ -138,16 +140,15 @@ public:
             */
         }
 
-
-
     }
+
 
     void initializeSwingPhase(int i) {
         V3D velocity = planner->getTargetTrunkVelocityAtTime(planner->getSimTime() /* + dt*/);
         V3D velocityDir = velocity.normalized();
         auto heel = robot->getLimb(i + 2);
 
-        double stepLength = 0.1;
+        const double stepLength = velocity.norm() * gcycleLength;
         heelStarts[i] = heel->getEEWorldPos();
         // heelEnds[i] = heelStarts[i];
         // heelEnds[i].y = heelHeight[i];
@@ -155,15 +156,15 @@ public:
         heelEnds[i] = (
             heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // at it's default position
             + velocity * cycleLength * (heelStrikeStart - swingStart)       // where the default will be at the end of the swing phase
-            + (robot->getHeading() * robot->getForward()) * stepLength
+            + (robot->getHeading() * robot->getForward()) * stepLength/2
         );
 
         V3D p0 = V3D(heelStarts[i]);
         V3D p3 = V3D(heelEnds[i]);
         V3D p1 = lerp(p0, p3, 0.25);
         V3D p2 = lerp(p1, p3, 0.75);
-        p1[1] += 0.1;
-        p2[1] += 0.05;
+//        p1[1] += 0.1;
+//        p2[1] += 0.05;
 
         swingTrajectories[i].clear();
         swingTrajectories[i].addKnot(0.0, p0);
@@ -202,7 +203,7 @@ public:
         break;case Phase::HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
-            P3D pFinal = heel->getEEWorldPos() + defaultHeelToToe[i];
+            P3D pFinal = heel->getEEWorldPos() + robot->getForward() * heelToeDistance ;
             double cyclePercent = getCyclePercent(i, t);
             return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
         }
@@ -318,7 +319,7 @@ public:
 
     void computeHeelStrikeTarget(int i) {
         auto heel = robot->getLimb(i + 2);
-        heelStrikeTargets[i] = heel->getEEWorldPos() + defaultHeelToToe[i];
+        heelStrikeTargets[i] = heel->getEEWorldPos() + robot->getForward() * heelToeDistance;
     }
 
     void setHeelStrikeTarget(int i) {
@@ -329,7 +330,7 @@ public:
         ikSolver->addEndEffectorTarget(toes->eeRB, toes->ee->endEffectorOffset, pTarget);
     }
 
-    double remap(double time, double a, double b) {
+    static double remap(double time, double a, double b) {
         // remap t in [a, b] to [0, 1]
         return (time - a) / (b - a);
     }
@@ -371,7 +372,21 @@ public:
     }
 
     void drawDebugInfo(gui::Shader *shader) override {
-        planner->drawTrajectories(shader);
+
+
+        for(auto leg : {0, 1}){
+            switch(getPhase(leg ,t)){
+                break;case Stance:
+                    drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
+                break;case Swing:
+                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 1, 0});
+                break;case HeelStrike:
+                    drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
+                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
+            }
+        }
+
+//        planner->drawTrajectories(shader);
     }
 
     void plotDebugInfo() override {

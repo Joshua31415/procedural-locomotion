@@ -106,11 +106,11 @@ public:
         this->z = data[2];
     }
 
-    P3D operator+(const P3D &p) {
+    P3D operator+(const P3D &p) const {
         return P3D(x + p.x, y + p.y, z + p.z);
     }
 
-    P3D operator-(const P3D &p) {
+    P3D operator-(const P3D &p) const {
         return P3D(x - p.x, y - p.y, z - p.z);
     }
 

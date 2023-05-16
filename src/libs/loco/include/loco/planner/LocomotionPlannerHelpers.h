@@ -173,7 +173,7 @@ public:
                         dTimeStep = dt / (cpiSwing.getTimeLeft() - 0.05) * factor;
 
                     V3D deltaStep = dTimeStep * (finalEEPos - oldEEPos);
-                    deltaStep[0] = 0.0;
+//                    deltaStep[0] = 0.0;
                     //deltaStep[2] = 0.0;
                     V3D eePos = oldEEPos + deltaStep;
 
