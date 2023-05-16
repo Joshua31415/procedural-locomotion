@@ -39,7 +39,7 @@ public:
         // TODO: change trajectory of the foot here
 
         for(int i = 0; i < 100; ++i){
-            swingFootHeightTraj.addKnot(i*0.7/100, std::sin(M_PI*i/100));
+            swingFootHeightTraj.addKnot(i * 0.7 / 100, std::sin(3.14159265358979323846 * i / 100));
         }
 
 
