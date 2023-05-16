@@ -18,6 +18,7 @@ public:
     // p: this trajectory controlls how fast a foot lifts and how fast it sets
     // back down, encoded as a function of swing phase
     Trajectory1D swingFootHeightTraj;
+    Trajectory1D swingPelvisHeightTraj;
     // p: given the total step length for a limb, ffStepLengthRatio controls the
     // stance phase when the limb should be right below the hip/shoulder (e.g.
     // default, or zero step length configuration) Should this be per limb?
@@ -29,6 +30,7 @@ public:
     Trajectory1D swingHeightOffsetTrajDueToFootSize;
 
     double swingFootHeight = 0.1;
+    double swingPelvisHeight = 0.1;
 
     //x and z here are expressed in a heading-independent coordinate frame
     double stepWidthOffsetX = 0.7;
@@ -40,8 +42,8 @@ public:
 
         for(int i = 0; i < 100; ++i){
             swingFootHeightTraj.addKnot(i*0.7/100, std::sin(M_PI*i/100));
+            swingPelvisHeightTraj.addKnot(i*0.7/100, std::sin(4*M_PI*i/100));
         }
-
 
         swingHeightOffsetTrajDueToFootSize.addKnot(0, 1.0);
         swingHeightOffsetTrajDueToFootSize.addKnot(0.5, 1.0);
@@ -177,13 +179,19 @@ public:
                     //deltaStep[2] = 0.0;
                     V3D eePos = oldEEPos + deltaStep;
 
-                    // add ground height + ee size as offset...
-                    eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
-                                lmp.swingHeightOffsetTrajDueToFootSize.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * limb->ee->radius +
-                                limb->ee->defaultHeight;
-                    eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
-                                limb->ee->defaultHeight;
-                    //eePos.y() = groundHeight + limb->ee->defaultHeight;
+                    if(limb->name == "lLowerLeg" || limb->name == "rLowerLeg") {
+                        // add ground height + ee size as offset...
+                        eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
+                                    lmp.swingHeightOffsetTrajDueToFootSize.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * limb->ee->radius +
+                                    limb->ee->defaultHeight;
+                        eePos.y() = groundHeight + lmp.swingFootHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingFootHeight +
+                                    limb->ee->defaultHeight;
+                        //eePos.y() = groundHeight + limb->ee->defaultHeight;
+                    }
+                    else if(limb->name == "pelvis") {
+                        eePos.y() = groundHeight + lmp.swingPelvisHeightTraj.evaluate_linear(cpiSwing.getPercentageOfTimeElapsed()) * lmp.swingPelvisHeight +
+                                    limb->ee->defaultHeight - 0.1;
+                    }
                     traj.addKnot(t, eePos);
                     t += dt;
                 }

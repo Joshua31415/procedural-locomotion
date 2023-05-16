@@ -52,6 +52,8 @@ public:
         //pg.addSwingPhaseForLimb(robot->getLimbByName("rFoot"), 0.5 - tOffset, 1.0 + tOffset);
         pg.addSwingPhaseForLimb(robot->getLimbByName("lLowerLeg"), 0 - tOffset, 0.5 + tOffset);
         pg.addSwingPhaseForLimb(robot->getLimbByName("rLowerLeg"), 0.5 - tOffset, 1.0 + tOffset);
+        pg.addSwingPhaseForLimb(robot->getLimbByName("pelvis"), 0.5 - tOffset, 1.0 + tOffset);
+        // pg.addSwingPhaseForLimb(robot->getLimbByName("lumbar"), 0.5 - tOffset, 1.0 + tOffset);
         pg.strideDuration = 0.7;
         return pg;
     }
