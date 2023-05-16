@@ -229,7 +229,7 @@ public:
         break;case Phase::HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
-            P3D pFinal = heel->getEEWorldPos() + robot->getForward() * heelToeDistance ;
+            P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
             double cyclePercent = getCyclePercent(i, t);
             return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
         }
@@ -247,9 +247,10 @@ public:
                 heelStarts[i] = pStart;
                 heelStartSet[i] = true; 
             }
-            P3D pEnd = (heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
-                        + 0.05 * (robot->getHeading() * robot->getForward())                // offset in heading direction
-            );
+            P3D pEnd = getP3D(robot->getHeading() * V3D(              // apply heading rotation
+                          heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
+                        + 0.05 * robot->getForward()));               // offset in forward direction
+
             return lerp(heelStarts[i], pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
         } else if (nextPhase == Phase::HeelStrike) {
             P3D pHeel = heel->getEEWorldPos();
@@ -325,9 +326,9 @@ public:
     void computeSwingTarget(int i) {
         auto heel = robot->getLimb(i + 2);
         P3D pStart = heel->getEEWorldPos();
-        P3D pEnd = (heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
-                    + 0.05 * (robot->getHeading() * robot->getForward())                // offset in heading direction
-        );
+        P3D pEnd = getP3D(robot->getHeading() * V3D(heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
+                    + 0.05 * robot->getForward()));             // offset in heading direction
+
 
         swingTargets[i] = lerp(pStart, pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
     }
