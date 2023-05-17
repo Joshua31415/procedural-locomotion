@@ -147,12 +147,16 @@ public:
 
         const double gaitCycleLength = controller_->cycleLength;
 
+        static double tPrev = controller_->t;
+
 
         const auto numSamples = static_cast<size_t>(60*gaitCycleLength);
         assert(gaitCycleLength == numSamples.size());
 
         static size_t idx = 0;
-        idx = (idx + 1) % numSamples;
+        if(controller_->t != tPrev)
+            idx = (idx + 1) % numSamples;
+        tPrev = controller_->t;
 
 
         static std::vector<double> x_vals(numSamples), y_vals(numSamples),

@@ -12,8 +12,8 @@ namespace crl::loco {
 
 /* TODO
  * Smooth transition between Phases
- * Satisfy floor constraints (Heel strike + stance heel pos)
  * walking backwards
+ * walking in a curve
 */
 
 
@@ -25,6 +25,9 @@ class KinematicTrackingController : public LocomotionController {
 public:
     std::shared_ptr<LeggedRobot> robot;
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
+
+    double heelHeight;
+    double toeHeight;
 
 
     double t = 0;
@@ -44,7 +47,7 @@ public:
     std::array<P3D, 2> heelTargets;
     std::array<P3D, 2> heelStarts;
     std::array<P3D, 2> heelEnds;
-    std::array<double, 2> heelHeight;
+//    std::array<double, 2> heelHeight;
     std::array<bool, 2> heelStartSet;
     enum Phase {Stance, Swing, HeelStrike};
     int its = 0;
@@ -57,7 +60,13 @@ public:
         this->robot = planner->robot;
         ikSolver = std::make_shared<IK_Solver>(robot);
 
-        heelToeDistance = V3D(robot->getLimb(2)->getEEWorldPos(), robot->getLimb(0)->getEEWorldPos()).norm();
+        auto toe = robot->getLimb(0);
+        auto heel = robot->getLimb(2);
+
+        heelToeDistance = V3D(heel->getEEWorldPos(), toe->getEEWorldPos()).norm();
+
+        heelHeight = (heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld)[1];
+        toeHeight = (toe->limbRoot->getWorldCoordinates() + toe->defaultEEOffsetWorld)[1];
 
         for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();
@@ -69,7 +78,7 @@ public:
             heelEnds[i] = pHeel;
             heelStartSet[i] = false;
             toeTargets[i] = pToes;
-            heelHeight[i] = pHeel.y;
+//            heelHeight[i] = pHeel.y;
             swingTrajectories[i].addKnot(0, V3D(pHeel));
             swingTrajectories[i].addKnot(1, V3D(pHeel));
         }
@@ -99,7 +108,7 @@ public:
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
-         targetPos[1] = 0.88;
+//        targetPos[1] = 0.88;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos, targetOrientation);
 
@@ -190,7 +199,7 @@ public:
             assert(false && "Walking backwards is not supported yet.");
         }
 
-        heelEnds[i][1] = 0.0;
+        heelEnds[i][1] = heelHeight;
 
         V3D p0 = V3D(heelStarts[i]);
         V3D p3 = V3D(heelEnds[i]);
@@ -237,7 +246,7 @@ public:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
-            pFinal[1] = 0;
+            pFinal[1] = toeHeight;
             double cyclePercent = getCyclePercent(i, t);
             return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
         }
@@ -259,9 +268,12 @@ public:
                           heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
                         + 0.05 * robot->getForward()));               // offset in forward direction
 
+            pEnd[1] = heelHeight;
+
             return lerp(heelStarts[i], pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
         } else if (nextPhase == Phase::HeelStrike) {
             P3D pHeel = heel->getEEWorldPos();
+            pHeel[1] = heelHeight;
             heelStartSet[i] = false;
             return pHeel;
         }
@@ -356,7 +368,7 @@ public:
         auto toes = robot->getLimb(i + 2);
         auto heel = robot->getLimb(i + 2);
         heelTargets[i] = heel->getEEWorldPos();
-        heelTargets[i][1] = 0;
+        heelTargets[i][1] = heelHeight;
     }
 
     void computeHeelStrikeTarget(int i) {
@@ -414,11 +426,11 @@ public:
     }
 
     void setToesToFloor(int i) {
-        toeTargets[i][1] = 0;
+        toeTargets[i][1] = toeHeight;
     }
 
     void setHeelToFloor(int i) {
-        heelTargets[i][1] = 0;
+        heelTargets[i][1] = heelHeight;
     }
 
     void advanceInTime(double dt) override {
@@ -432,7 +444,8 @@ public:
             switch(getPhase(leg ,t)){
                 break;case Stance:
                     drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
-                    drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
+                    if(isEarlyStance(getCyclePercent(leg, t)))
+                        drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
                 break;case Swing:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 1, 0});
                 break;case HeelStrike:
