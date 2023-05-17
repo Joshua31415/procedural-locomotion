@@ -335,11 +335,11 @@ public:
     }
     
     void computeSwingTrajectory(int i) {
-        auto foot = robot->getLimb(i + 2);
+        auto heel = robot->getLimb(i + 2);
 
         swingTrajectories[i].clear();
-        P3D pStart = foot->getEEWorldPos();
-        V3D offset(pStart, foot->limbRoot->getWorldCoordinates() + foot->defaultEEOffsetWorld);
+        P3D pStart = heel->getEEWorldPos();
+        V3D offset(pStart, heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld);
         P3D pEnd = pStart + offset * 2.1;
         swingTrajectories[i].addKnot(0, V3D(pStart));
         swingTrajectories[i].addKnot(1, V3D(pEnd));
@@ -367,7 +367,7 @@ public:
     }
 
     void computeEarlyStanceHeelStrike(int i) {
-        auto toes = robot->getLimb(i + 2);
+        auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
         heelTargets[i] = heel->getEEWorldPos();
         heelTargets[i][1] = heelHeight;
@@ -405,7 +405,7 @@ public:
     }
 
     bool isEarlyStance(double cyclePercent) const {
-        return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart)/2.0);
+        return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart)*0.5);
     }
 
     bool isSwing(double cyclePercent) const {
@@ -441,6 +441,8 @@ public:
 
     void drawDebugInfo(gui::Shader *shader) override {
 
+        constexpr size_t numTrajectorySamples = 100;
+
 
         for(auto leg : {0, 1}){
             switch(getPhase(leg ,t)){
@@ -449,7 +451,9 @@ public:
                     if(isEarlyStance(getCyclePercent(leg, t)))
                         drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
                 break;case Swing:
-                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 1, 0});
+                    for(int i = 0; i < numTrajectorySamples; ++i){
+                        drawSphere(getP3D(swingTrajectories[leg].evaluate_catmull_rom(i*1.0/numTrajectorySamples)), 0.002, *shader, {0, 1, 0});
+                    }
                     drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
                 break;case HeelStrike:
                     drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
