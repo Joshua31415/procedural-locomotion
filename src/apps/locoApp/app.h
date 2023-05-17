@@ -163,7 +163,8 @@ public:
                                    velocities(numSamples), accelerations(numSamples);
 
 
-        static auto joint = robot_->getLimbByName("rLowerLeg")->jointList[3];
+        static auto joint = robot_->getJointByName("rAnkle_1");
+
 
         static auto joints = [&](){
 

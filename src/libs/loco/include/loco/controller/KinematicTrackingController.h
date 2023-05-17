@@ -32,6 +32,7 @@ public:
 
     double t = 0;
     double cycleLength = 1.25; // in seconds
+
     double stanceStart = 0.0; // in percent
     double swingStart = 0.6; // in percent
     double heelStrikeStart = 0.9; // in percent
@@ -189,12 +190,13 @@ public:
         // heelEnds[i].y = heelHeight[i];
         // heelEnds[i] = heelEnds[i] + velocityDir * stepLength;
         heelEnds[i] = (
-            heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // at it's default position
+            heel->limbRoot->getWorldCoordinates() + robot->getHeading() * heel->defaultEEOffsetWorld  // at it's default position
             + velocity * cycleLength * (heelStrikeStart - swingStart)       // where the default will be at the end of the swing phase
-        );
+            //TODO add rotational velocity
+            );
 
         if((robot->getHeading() * robot->getForward()).dot(velocity) >= 0){
-            heelEnds[i] = heelEnds[i] + velocity.normalized() * stepLength/3;
+            heelEnds[i] = heelEnds[i] + robot->getHeading() * velocity.normalized() * stepLength/3; //velocity dependent offset
         }else{
             assert(false && "Walking backwards is not supported yet.");
         }
@@ -264,9 +266,9 @@ public:
                 heelStarts[i] = pStart;
                 heelStartSet[i] = true; 
             }
-            P3D pEnd = getP3D(robot->getHeading() * V3D(              // apply heading rotation
-                          heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
-                        + 0.05 * robot->getForward()));               // offset in forward direction
+            P3D pEnd = heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
+                       + getP3D(robot->getHeading() * V3D(+ 0.05 * robot->getForward()));  // offset in forward direction
+
 
             pEnd[1] = heelHeight;
 
@@ -448,6 +450,7 @@ public:
                         drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
                 break;case Swing:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 1, 0});
+                    drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
                 break;case HeelStrike:
                     drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
