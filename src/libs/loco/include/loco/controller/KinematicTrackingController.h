@@ -25,6 +25,7 @@ class KinematicTrackingController : public LocomotionController {
 public:
     std::shared_ptr<LeggedRobot> robot;
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
+    GeneralizedCoordinatesRobotRepresentation gcrr;
 
     double heelHeight;
     double toeHeight;
@@ -57,7 +58,7 @@ public:
     /**
      * constructor
      */
-    explicit KinematicTrackingController(const std::shared_ptr<LocomotionTrajectoryPlanner> &planner) : LocomotionController(planner) {
+    explicit KinematicTrackingController(const std::shared_ptr<LocomotionTrajectoryPlanner> &planner) : LocomotionController(planner), gcrr(planner->robot) {
         this->robot = planner->robot;
         ikSolver = std::make_shared<IK_Solver>(robot);
 
@@ -108,12 +109,18 @@ public:
     void computeAndApplyControlSignals(double dt) override {
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
+
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
 //        targetPos[1] = 0.88;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos, targetOrientation);
 
+        
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
         t += dt;
+
+
         // use the toe as the targeted endeffector in the stance phase
         // use the heel as the targeted endeffector in the swing phase
         // idx i == 0 <-> right leg
@@ -139,8 +146,8 @@ public:
             }
 
         }
-        addArmTargets(dt);
         ikSolver->solve();
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             if (currentPhase == Phase::HeelStrike) {
@@ -169,6 +176,7 @@ public:
                 computeEarlyStanceHeelStrike(i);
         }
 
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
     }
 
     void addArmTargets(double dt) {
@@ -177,6 +185,7 @@ public:
             ikSolver->addEndEffectorTarget(robot->getLimb(i)->eeRB, robot->getLimb(i)->ee->endEffectorOffset, target);
         }
     }
+
     void initializeSwingPhase(int i) {
         V3D velocity = planner->getTargetTrunkVelocityAtTime(planner->getSimTime() /* + dt*/);
         V3D velocityDir = velocity.normalized();
@@ -281,9 +290,7 @@ public:
         }
     }
 
-    
     void setAnkleAngleDuringHeelStrike(int footIdx) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
@@ -300,7 +307,6 @@ public:
     }
 
     void makeToesParallelToGround(int footIdx) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
@@ -313,7 +319,6 @@ public:
     }
 
     void moveToesBackToDefault(int footIdx) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
         dVector q;
         gcrr.getQ(q);
         double angleCurrent = q(6 + footJointIndices[footIdx][3]);
