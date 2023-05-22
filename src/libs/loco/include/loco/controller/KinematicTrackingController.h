@@ -54,7 +54,6 @@ public:
 //    std::array<double, 2> heelHeight;
     std::array<bool, 2> heelStartSet;
 
-    // 1: shoulder sagittal plane, 2: elbow saggital plane
     double shoulderAmplitudeDegree = 5.0; // in degree
     double shoulderAmplitude = shoulderAmplitudeDegree * twoPi / 360.0;
     double shoulderMin = shoulderAmplitude;
@@ -64,11 +63,13 @@ public:
     double elbowMin = -0.25;
     double elbowMax = -0.45;
     Trajectory1D elbowJointTrajectory;
+
+    // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
     std::array<std::array<int, 3>, 2> armJointIndices;
 
     // for upper body
     int spineIdx;
-    double spineAmplitudeDegree = 3.0;
+    double spineAmplitudeDegree = 2.0;
     double spineAmplitude = toRad(spineAmplitudeDegree);
     int neckIdx;
 
