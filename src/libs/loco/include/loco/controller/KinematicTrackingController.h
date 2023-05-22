@@ -25,16 +25,19 @@ class KinematicTrackingController : public LocomotionController {
 public:
     std::shared_ptr<LeggedRobot> robot;
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
+    GeneralizedCoordinatesRobotRepresentation gcrr;
 
     double heelHeight;
     double toeHeight;
 
-
+    const double pi = 3.14159265358979323846;
+    const double twoPi = pi * 2.0;
+        
     double t = 0;
     double cycleLength = 1.25; // in seconds
 
     double stanceStart = 0.0; // in percent
-    double swingStart = 0.6; // in percent
+    double swingStart = 0.5; // in percent
     double heelStrikeStart = 0.9; // in percent
 
     double heelToeDistance;
@@ -50,6 +53,25 @@ public:
     std::array<P3D, 2> heelEnds;
 //    std::array<double, 2> heelHeight;
     std::array<bool, 2> heelStartSet;
+
+    // 1: shoulder sagittal plane, 2: elbow saggital plane
+    double shoulderAmplitudeDegree = 5.0; // in degree
+    double shoulderAmplitude = shoulderAmplitudeDegree * twoPi / 360.0;
+    double shoulderMin = shoulderAmplitude;
+    double shoulderMax = -shoulderAmplitude; // negative rotation: moves arm forward
+    Trajectory1D shoulderJointTrajectory;
+
+    double elbowMin = -0.25;
+    double elbowMax = -0.45;
+    Trajectory1D elbowJointTrajectory;
+    std::array<std::array<int, 3>, 2> armJointIndices;
+
+    // for upper body
+    int spineIdx;
+    double spineAmplitudeDegree = 3.0;
+    double spineAmplitude = toRad(spineAmplitudeDegree);
+    int neckIdx;
+
     enum Phase {Stance, Swing, HeelStrike};
     int its = 0;
 
@@ -57,7 +79,7 @@ public:
     /**
      * constructor
      */
-    explicit KinematicTrackingController(const std::shared_ptr<LocomotionTrajectoryPlanner> &planner) : LocomotionController(planner) {
+    explicit KinematicTrackingController(const std::shared_ptr<LocomotionTrajectoryPlanner> &planner) : LocomotionController(planner), gcrr(planner->robot) {
         this->robot = planner->robot;
         ikSolver = std::make_shared<IK_Solver>(robot);
 
@@ -84,14 +106,40 @@ public:
             swingTrajectories[i].addKnot(1, V3D(pHeel));
         }
 
-        std::array lJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint"};
-        std::array rJoints = {"rHip_1", "rKnee", "rAnkle_1", "rToeJoint"};
-        for (int i = 0; i < 4; ++i) {
-            int lIdx = robot->getJointIndex(lJoints[i]);
-            int rIdx = robot->getJointIndex(rJoints[i]);
+        std::array lLegJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint"};
+        std::array rLegJoints = {"rHip_1", "rKnee", "rAnkle_1", "rToeJoint"};
+        for (int i = 0; i < lLegJoints.size(); ++i) {
+            int lIdx = robot->getJointIndex(lLegJoints[i]);
+            int rIdx = robot->getJointIndex(rLegJoints[i]);
             footJointIndices[0][i] = rIdx;
             footJointIndices[1][i] = lIdx;
         }
+
+        spineIdx = robot->getJointIndex("upperback_y");
+        neckIdx = robot->getJointIndex("lowerneck_y");
+
+        std::array lArmJoints = {"lShoulder_1", "lElbow_flexion_extension", "lShoulder_torsion"};
+        std::array rArmJoints = {"rShoulder_1", "rElbow_flexion_extension", "rShoulder_torsion"};
+        for (int i = 0; i < lArmJoints.size(); ++i) {
+            int lIdx = robot->getJointIndex(lArmJoints[i]);
+            int rIdx = robot->getJointIndex(rArmJoints[i]);
+            armJointIndices[0][i] = rIdx;
+            armJointIndices[1][i] = lIdx;
+        }
+
+        // negative degrees raise the arms
+        // max elongation should roughly be in sync with the furthest position of the knee (at ~65% of the cycle); maybe not?
+        //shoulderJointTrajectory.addKnot(stanceStart, shoulderMax);
+        //shoulderJointTrajectory.addKnot(0.65, shoulderMax);
+        //shoulderJointTrajectory.addKnot(1.0, 0.0);
+        
+        shoulderJointTrajectory.addKnot(stanceStart, shoulderMax);
+        shoulderJointTrajectory.addKnot(swingStart, shoulderMin);
+        shoulderJointTrajectory.addKnot(heelStrikeStart, shoulderMax);
+
+        elbowJointTrajectory.addKnot(stanceStart, elbowMax);
+        elbowJointTrajectory.addKnot(swingStart, elbowMin);
+        elbowJointTrajectory.addKnot(heelStrikeStart, elbowMax);
     }
 
     /**
@@ -99,6 +147,9 @@ public:
      */
     ~KinematicTrackingController() override = default;
 
+    double toRad(double degree) const {
+        return degree * twoPi / 360.0;
+    }
     void generateMotionTrajectories(double dt = 1.0 / 30) override {
         planner->planGenerationTime = planner->simTime;
         planner->generateTrajectoriesFromCurrentState(dt);
@@ -108,12 +159,18 @@ public:
     void computeAndApplyControlSignals(double dt) override {
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
+
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
 //        targetPos[1] = 0.88;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos, targetOrientation);
 
+        
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
         t += dt;
+
+
         // use the toe as the targeted endeffector in the stance phase
         // use the heel as the targeted endeffector in the swing phase
         // idx i == 0 <-> right leg
@@ -137,10 +194,11 @@ public:
                 setToeTarget(i, toeTargets[i]);
                 setHeelTarget(i, heelTargets[i]);
             }
-
+            setArmAngles(i); 
         }
-        addArmTargets(dt);
+        setSpineAngle();
         ikSolver->solve();
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             if (currentPhase == Phase::HeelStrike) {
@@ -169,6 +227,7 @@ public:
                 computeEarlyStanceHeelStrike(i);
         }
 
+        gcrr.syncGeneralizedCoordinatesWithRobotState();
     }
 
     void addArmTargets(double dt) {
@@ -177,6 +236,7 @@ public:
             ikSolver->addEndEffectorTarget(robot->getLimb(i)->eeRB, robot->getLimb(i)->ee->endEffectorOffset, target);
         }
     }
+
     void initializeSwingPhase(int i) {
         V3D velocity = planner->getTargetTrunkVelocityAtTime(planner->getSimTime() /* + dt*/);
         V3D velocityDir = velocity.normalized();
@@ -281,9 +341,7 @@ public:
         }
     }
 
-    
     void setAnkleAngleDuringHeelStrike(int footIdx) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
@@ -300,7 +358,6 @@ public:
     }
 
     void makeToesParallelToGround(int footIdx) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
@@ -313,7 +370,6 @@ public:
     }
 
     void moveToesBackToDefault(int footIdx) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
         dVector q;
         gcrr.getQ(q);
         double angleCurrent = q(6 + footJointIndices[footIdx][3]);
@@ -322,6 +378,40 @@ public:
         q(6 + footJointIndices[footIdx][3]) = lerp(angleCurrent, angleTarget, remap(cyclePercent, swingStart, heelStrikeStart));
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();        
+    }
+
+    void setArmAngles(int armIdx) {
+        dVector q;
+        gcrr.getQ(q);
+        // need to map armIdx 1 to 0 and vice-versa, or maybe not?
+        int syncedLegIdx;
+        if (armIdx == 0) {
+            syncedLegIdx = 1;
+        } else {
+            syncedLegIdx = 0;
+        }
+        double cyclePercent = getCyclePercent(syncedLegIdx, t);
+        double phase = getPhase(syncedLegIdx, t);
+
+        double shoulderTarget = shoulderJointTrajectory.evaluate_catmull_rom(cyclePercent);
+        q(6 + armJointIndices[armIdx][0]) = shoulderTarget;
+
+        double elbowTarget = elbowJointTrajectory.evaluate_catmull_rom(cyclePercent);
+        q(6 + armJointIndices[armIdx][1]) = elbowTarget;
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
+    }
+
+    void setSpineAngle() {
+        dVector q;
+        gcrr.getQ(q);
+
+        double cyclePercent = getCyclePercent(0, t);
+        double spineTarget = spineAmplitude * sin(twoPi * cyclePercent);
+        q(6 + spineIdx) = spineTarget;
+        q(6 + neckIdx) = -spineTarget; // so that bob looks straight ahead
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
     void computeStanceTarget(int i) {

@@ -11,6 +11,8 @@ namespace locoApp {
 
 class App : public crl::gui::ShadowApplication {
 public:
+    std::shared_ptr<crl::loco::RBJoint>  plottingJoint;
+
     App() : crl::gui::ShadowApplication("Locomotion App") {
         this->showConsole = true;
         this->automanageConsole = true;
@@ -163,10 +165,8 @@ public:
                                    velocities(numSamples), accelerations(numSamples);
 
 
-        static auto joint = robot_->getJointByName("rAnkle_1");
 
-
-        static auto joints = [&](){
+        const auto joints = [&](){
 
             using jointPtr = std::shared_ptr<crl::loco::RBJoint>;
             using rbPtr = std::shared_ptr<crl::loco::RB>;
@@ -192,14 +192,14 @@ public:
         if (ImGui::BeginMenu("Select Joint"))
         {
             for(const auto &j : joints){
-                if(ImGui::MenuItem(j->name.c_str())){ joint = j;}
+                if(ImGui::MenuItem(j->name.c_str())){ plottingJoint = j;}
             }
             ImGui::EndMenu();
         }
 
 
         x_vals[idx] = 100 * fmod(controller_->t, gaitCycleLength)/gaitCycleLength;
-        y_vals[idx] = joint->getCurrentJointAngle() * 180.0 * 1/3.14159265358979323846;
+        y_vals[idx] = plottingJoint->getCurrentJointAngle() * 180.0 * 1/3.14159265358979323846;
 
         velocities[idx] = (y_vals[(idx + 1)%numSamples] - y_vals[(idx + numSamples - 1)%numSamples])/(2 * dt);
 //        accelerations[idx] = (velocities[(idx + 1)%numSamples] - velocities[(idx + numSamples - 1)%numSamples])/(2 * dt);
@@ -226,7 +226,7 @@ public:
 
             ImPlot::SetupAxesLimits(0, 100, plotMin - 10, plotMax + 10, ImPlotCond_Always);
 
-            ImPlot::PlotScatter(joint->name.c_str(), x_vals.data(), y_vals.data(), static_cast<int>(numSamples));
+            ImPlot::PlotScatter(plottingJoint->name.c_str(), x_vals.data(), y_vals.data(), static_cast<int>(numSamples));
 //            ImPlot::PlotScatter("Velocity", x_vals.data(), velocities.data(), numSamples);
 //            ImPlot::PlotScatter("Acceleration", x_vals, accelerations, numSamples);
 
@@ -289,6 +289,8 @@ private:
         // generate plan
         planner_->appendPeriodicGaitIfNeeded(gaitPlanner_->getPeriodicGait(robot_));
         controller_->generateMotionTrajectories();
+
+        plottingJoint = robot_->getJointByName("rAnkle_1");
     }
 
 public:
