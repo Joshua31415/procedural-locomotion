@@ -94,13 +94,13 @@ public:
 
     virtual P3D getTargetLimbEEPositionAtTime(const std::shared_ptr<RobotLimb>& l, double t) = 0;
 
-    virtual P3D getTargetTrunkPositionAtTime(double t) = 0;
+    virtual P3D getTargetTrunkPositionAtTime(double t, double cyclePercent) = 0;
 
     virtual double getTargetTrunkHeadingAtTime(double t) = 0;
 
     virtual RBState getTargetTrunkState(double t) {
         RBState targetState;
-        targetState.pos = getTargetTrunkPositionAtTime(t);
+        targetState.pos = getTargetTrunkPositionAtTime(t, t);
         targetState.orientation = getTargetTrunkOrientationAtTime(t);
         return targetState;
     }
@@ -116,7 +116,7 @@ public:
     }
 
     virtual V3D getTargetTrunkVelocityAtTime(double t, double dt = 1 / 30.0) {
-        P3D delta = getTargetTrunkPositionAtTime(t + dt) - getTargetTrunkPositionAtTime(t);
+        P3D delta = getTargetTrunkPositionAtTime(t + dt, t) - getTargetTrunkPositionAtTime(t, t);
         return V3D(delta) / dt;
     }
 

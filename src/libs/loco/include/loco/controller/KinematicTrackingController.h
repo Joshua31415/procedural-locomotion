@@ -161,7 +161,8 @@ public:
         // follow target base trajectory.
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
-        P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
+        double cyclePercent = getCyclePercent(0, planner->getSimTime() + dt);
+        P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt, cyclePercent);
 //        targetPos[1] = 0.88;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos, targetOrientation);

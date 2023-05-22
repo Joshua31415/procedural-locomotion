@@ -94,8 +94,8 @@ public:
         return P3D() + limbTrajectories[l].evaluate_linear(t);
     }
 
-    virtual P3D getTargetTrunkPositionAtTime(double t) {
-        return P3D() + bFrameMotionPlan.bFramePosTrajectory.evaluate_linear(t) + RBGlobals::worldUp * 0.03 * sin(3 * M_PI * t) - P3D(0, 0.03, 0);
+    virtual P3D getTargetTrunkPositionAtTime(double t, double cyclePercent) {
+        return P3D() + bFrameMotionPlan.bFramePosTrajectory.evaluate_linear(t) + RBGlobals::worldUp * 0.03 * sin(4 * M_PI * cyclePercent) - P3D(0, 0.02, 0);
     }
 
     virtual double getTargetTrunkHeadingAtTime(double t) {
