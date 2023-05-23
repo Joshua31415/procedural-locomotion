@@ -27,6 +27,9 @@ public:
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
     GeneralizedCoordinatesRobotRepresentation gcrr;
 
+    //Vector of point/radius/color
+    std::vector<std::tuple<P3D, double, V3D>> drawList{};
+
     double heelHeight;
     double toeHeight;
 
@@ -63,6 +66,8 @@ public:
     double elbowMin = -0.25;
     double elbowMax = -0.45;
     Trajectory1D elbowJointTrajectory;
+
+    double dt = 1./30;
 
     // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
     std::array<std::array<int, 3>, 2> armJointIndices;
@@ -116,6 +121,8 @@ public:
             footJointIndices[1][i] = lIdx;
         }
 
+
+
         spineIdx = robot->getJointIndex("upperback_y");
         neckIdx = robot->getJointIndex("lowerneck_y");
 
@@ -157,9 +164,11 @@ public:
     }
 
 
-    void computeAndApplyControlSignals(double dt) override {
+    void computeAndApplyControlSignals(double deltaT) override {
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
+
+        dt = deltaT;
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
@@ -231,7 +240,8 @@ public:
         gcrr.syncGeneralizedCoordinatesWithRobotState();
     }
 
-    void addArmTargets(double dt) {
+    void addArmTargets(double deltaT) {
+        dt = deltaT;
         for (uint i = 4; i < robot->getLimbCount(); i++) {
             P3D target = planner->getTargetLimbEEPositionAtTime(robot->getLimb(i), planner->getSimTime() + dt);
             ikSolver->addEndEffectorTarget(robot->getLimb(i)->eeRB, robot->getLimb(i)->ee->endEffectorOffset, target);
@@ -242,32 +252,46 @@ public:
         V3D velocity = planner->getTargetTrunkVelocityAtTime(planner->getSimTime() /* + dt*/);
         V3D velocityDir = velocity.normalized();
         auto heel = robot->getLimb(i + 2);
+        auto heading = robot->getHeading();
 
         const double stepLength = velocity.norm() * cycleLength;
 
 
         heelStarts[i] = heel->getEEWorldPos();
-        // heelEnds[i] = heelStarts[i];
-        // heelEnds[i].y = heelHeight[i];
-        // heelEnds[i] = heelEnds[i] + velocityDir * stepLength;
+
         heelEnds[i] = (
-            heel->limbRoot->getWorldCoordinates() + robot->getHeading() * heel->defaultEEOffsetWorld  // at it's default position
-            + velocity * cycleLength * (heelStrikeStart - swingStart)       // where the default will be at the end of the swing phase
+            heel->limbRoot->getWorldCoordinates() + heading * heel->defaultEEOffsetWorld  // at it's default position
+            + velocity * cycleLength * (heelStrikeStart - swingStart)       // where the default should be at the end of the swing phase
             //TODO add rotational velocity
             );
 
         if((robot->getHeading() * robot->getForward()).dot(velocity) >= 0){
-            heelEnds[i] = heelEnds[i] + robot->getHeading() * velocity.normalized() * stepLength/3; //velocity dependent offset
+            heelEnds[i] = heelEnds[i] + velocity.normalized() * stepLength/3; //velocity dependent offset
         }else{
             assert(false && "Walking backwards is not supported yet.");
         }
 
         heelEnds[i][1] = heelHeight;
 
+
+        auto tOffset = (swingStart - stanceStart)*cycleLength;
+        std::cout << planner->getSimTime() << ' ' << planner->getSimTime() + tOffset << ' ' << tOffset << '\n';
+
+        Quaternion currentOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime());
+        Quaternion futureOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + tOffset);
+
+        V3D heelDiff = currentOrientation.inverse() * V3D(heelEnds[i] - heelStarts[i]);
+
+        V3D p1 = V3D(heelStarts[i] + currentOrientation * heelDiff * 0.25);
+        V3D p2 = p1 + currentOrientation.slerp(0.25, futureOrientation) * heelDiff * 0.5;
+        V3D p3 = p2 + currentOrientation.slerp(0.75, futureOrientation) * heelDiff * 0.25;
+
+        heelEnds[i] = getP3D(p3);
+
         V3D p0 = V3D(heelStarts[i]);
-        V3D p3 = V3D(heelEnds[i]);
-        V3D p1 = lerp(p0, p3, 0.25);
-        V3D p2 = lerp(p1, p3, 0.75);
+//        V3D p3 = V3D(heelEnds[i]);
+//        V3D p1 = lerp(p0, p3, 0.25);
+//        V3D p2 = lerp(p1, p3, 0.75);
         p1[1] += 0.07;
         p2[1] += 0.03;
 
@@ -526,7 +550,8 @@ public:
         heelTargets[i][1] = heelHeight;
     }
 
-    void advanceInTime(double dt) override {
+    void advanceInTime(double deltaT) override {
+        dt = deltaT;
         planner->advanceInTime(dt);
     }
 
@@ -551,6 +576,11 @@ public:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
             }
         }
+
+        for(const auto&[p, r, c] : drawList)
+            drawSphere(p, r, *shader, c);
+
+        drawList.clear();
 
 //        planner->drawTrajectories(shader);
     }

@@ -112,7 +112,7 @@ public:
 
         ceres::Solver::Summary summary;
         ceres::Solve(options, &problem, &summary);
-        std::cout << summary.BriefReport() << "\n";
+//        std::cout << summary.BriefReport() << "\n";
 
         for (int i = 0; i < nJoints; ++i) {
             qOld(6 + i) = qNew(i);
