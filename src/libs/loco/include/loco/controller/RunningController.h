@@ -114,7 +114,7 @@ public:
         
         heelHeight = 0.018125;
         toeHeight = 0.008125;
-        // std::cout << heelHeight << "\n" << toeHeight << std::endl;
+        std::cout << heelHeight << "\n" << toeHeight << std::endl;
         for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
@@ -400,7 +400,7 @@ public:
         );
         // heelEnds[i].z += 0.1; // just for testing while bob is standing
         
-        heelEnds[i][1] = 0.0; // magic number for running...
+        // heelEnds[i][1] = 0.0; // magic number for running...
 
         V3D p0 = V3D(heelStarts[i]);
         V3D p3 = V3D(heelEnds[i]);
