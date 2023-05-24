@@ -408,9 +408,11 @@ public:
     void setArmAngles(int armIdx) {
         dVector q;
         gcrr.getQ(q);
-        // need to map armIdx 1 to 0 and vice-versa, or maybe not?
+        // need to map armIdx 1 to 0 and vice-versa, or maybe not? Use for the swing sync
+        double speed_direction = planner->speedForward;
         int syncedLegIdx;
-        if (armIdx == 0) {
+        // Need a smooth transition
+        if ((armIdx == 0 && speed_direction >= 0) || (armIdx == 1 && speed_direction < 0)) {
             syncedLegIdx = 1;
         } else {
             syncedLegIdx = 0;
