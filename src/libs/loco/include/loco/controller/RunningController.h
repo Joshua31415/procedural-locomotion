@@ -62,7 +62,8 @@ public:
     double shoulderMax; // negative rotation: moves arm forward
     Trajectory1D shoulderJointTrajectory;
     Trajectory1D elbowJointOffsetTrajectory;
-
+    Trajectory1D shoulderTorsionOffsetTrajectory;
+    std::array<double, 2> defaultShoulderTorsions;
     Trajectory1D hipTraj;
     Trajectory1D kneeTraj;
     // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
@@ -163,7 +164,9 @@ public:
             armJointIndices[0][i] = rIdx;
             armJointIndices[1][i] = lIdx;
         }
-
+        defaultShoulderTorsions[0] = robot->getJointByName(rArmJoints[2])->defaultJointAngle;
+        defaultShoulderTorsions[1] = robot->getJointByName(lArmJoints[2])->defaultJointAngle; 
+            
         /*
         hipTraj.addKnot(0.0, toRad(-45));
         hipTraj.addKnot(0.4, toRad(15));
@@ -219,6 +222,11 @@ public:
         elbowJointOffsetTrajectory.addKnot(stanceStart, toRad(-elbowOffsetAmplitude));
         elbowJointOffsetTrajectory.addKnot(swingStart, toRad(elbowOffsetAmplitude));
         elbowJointOffsetTrajectory.addKnot(heelStrikeStart, toRad(-elbowOffsetAmplitude));
+
+        double torsionOffsetAmplitude = 5.0;
+        shoulderTorsionOffsetTrajectory.addKnot(stanceStart, toRad(torsionOffsetAmplitude));
+        shoulderTorsionOffsetTrajectory.addKnot(swingStart, toRad(0.0));
+        shoulderTorsionOffsetTrajectory.addKnot(heelStrikeStart, toRad(torsionOffsetAmplitude));
     }
 
     /**
@@ -276,11 +284,12 @@ public:
                     updateToeLimits(i, minAngle, maxAngle); 
                     break;
                 case Phase::Swing:
-                    moveToesBackToDefault(i);
+                    // moveToesBackToDefault(i);
+                    setToesDefault(i);
                     setHeelTarget(i, heelTargets[i]);
                     // setDefault(i);
                     if (isLateSwing(getCyclePercent(i, t))) {
-                        raiseFootDuringSwing(i);
+                        // raiseFootDuringSwing(i);
                     }
                     break;
                 case Phase::HeelStrike:
@@ -296,7 +305,10 @@ public:
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             if (currentPhase == Phase::Stance) {
-                makeToesParallelToGround(i);
+                // makeToesParallelToGround(i);
+            }
+            if (isLateSwing(getCyclePercent(i, t))) {
+                // raiseFootDuringSwing(i);
             }
         }
         */
@@ -337,7 +349,7 @@ public:
     }
 
     bool isLateSwing(double cyclePercent) {
-        return 0.25 * (swingStart + heelStrikeStart) <= cyclePercent && cyclePercent <= heelStrikeStart;
+        return 0.5 * (swingStart + heelStrikeStart) <= cyclePercent && cyclePercent <= heelStrikeStart;
     }
 
     void raiseFootDuringSwing(int footIdx) {
@@ -351,7 +363,7 @@ public:
         double targetAngle = -angle - toRad(15.0);
         double currentAngle = q(footJointIndices[footIdx][2] + 6);
         double cyclePercent = getCyclePercent(footIdx, t);
-        q(footJointIndices[footIdx][2] + 6) = lerp(currentAngle, targetAngle, remap(cyclePercent, 0.25 * (swingStart + heelStrikeStart), heelStrikeStart));
+        q(footJointIndices[footIdx][2] + 6) = lerp(currentAngle, targetAngle, remap(cyclePercent, 0.5 * (swingStart + heelStrikeStart), heelStrikeStart));
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
@@ -407,18 +419,22 @@ public:
         // heelEnds[i][1] = 0.0; // magic number for running...
 
         V3D p0 = V3D(heelStarts[i]);
+        p0 += velocityDir * 0.05;
+        p0[1] += 0.02;
         V3D p3 = V3D(heelEnds[i]);
-        V3D p1 = lerp(p0, p3, 0.25);
-        V3D p0half = lerp(p0, p3, 0.05);
-        V3D p2 = lerp(p0, p3, 0.65);
-        p0half[1] += 0.15;
+        V3D p1 = lerp(p0, p3, 0.35);
         p1[1] += 0.5;
-        p2[1] += 0.2;
+
+        V3D p02 = lerp(p0, p1, 0.5);
+        V3D p2 = lerp(p0, p3, 0.65);
+        // p02 += velocityDir * 0.05;
+        p02[1] += 0.05;
+        p2[1] += 0.1;
         p2 += velocityDir * 0.3;
         // p2[2] += 0.3; // just for testing while bob is standing
         swingTrajectories[i].clear();
         swingTrajectories[i].addKnot(0.0, p0);
-        // swingTrajectories[i].addKnot(0.05, p0half);
+        swingTrajectories[i].addKnot(0.5 * 0.35, p02);
         swingTrajectories[i].addKnot(0.35, p1);
         swingTrajectories[i].addKnot(0.65, p2);
         swingTrajectories[i].addKnot(1.0, p3);
@@ -539,6 +555,7 @@ public:
                     swingStart + 0.15 * (heelStrikeStart - swingStart)
                 ), 0.0, 1.0)
         );
+        // q(6 + footJointIndices[footIdx][3]) = 0.0;
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();        
     }
@@ -570,6 +587,13 @@ public:
 
         double elbowOffset = elbowJointOffsetTrajectory.evaluate_catmull_rom(cyclePercent);
         q(6 + armJointIndices[armIdx][1]) = -0.5 * pi + elbowOffset;
+
+        double torsionOffset = shoulderTorsionOffsetTrajectory.evaluate_catmull_rom(cyclePercent);
+        // torsionOffset *= -1.0 ? armIdx == 1 : 1.0;
+        if (armIdx == 1) {
+            torsionOffset *= -1.0;
+        }
+        q(6 + armJointIndices[armIdx][2]) = defaultShoulderTorsions[armIdx] + torsionOffset;
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
