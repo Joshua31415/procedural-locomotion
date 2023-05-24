@@ -401,7 +401,8 @@ RBJoint
 	child lumbar_tmp1
 	jointCPos 0 0 0
 	jointPPos 0 0.1125 0
-	jointLimits -0.5 0.5	
+	jointLimits -0.5 0.5
+	defaultAngle 0.1
 /End_Joint
 
 RBJoint
@@ -567,7 +568,7 @@ RBJoint
 	jointCPos 0 0.16875 0
 	jointPPos 0 0 0
 	jointLimits -0.75 1.0
-	defaultAngle -0.5
+	defaultAngle -0.25
 /End_Joint
 
 
@@ -579,7 +580,7 @@ RBJoint
 	jointCPos 0 0.05625 0
 	jointPPos 0 -0.16875 0
 	jointLimits -2.5 0.0
-	defaultAngle -0.25
+	defaultAngle -1.57
 /End_Joint
 
 RBJoint
@@ -664,7 +665,7 @@ RBJoint
 	jointCPos 0 0.16875 0
 	jointPPos 0 0 0
 	jointLimits -0.5 0.75
-	defaultAngle 0.5
+	defaultAngle 0.25
 /End_Joint
 
 
@@ -676,7 +677,7 @@ RBJoint
 	jointCPos 0 0.05625 0
 	jointPPos 0 -0.16875 0
 	jointLimits -2.5 0
-	defaultAngle -0.25
+	defaultAngle -1.57
 /End_Joint
 
 RBJoint
@@ -762,7 +763,7 @@ RBJoint
 	child lFoot_tmp
 	jointCPos 0 0 0
 	jointPPos 0 -0.225 0
-	jointLimits -0.7 0.7
+	jointLimits -0.6 0.7
 	defaultAngle 0.0
 /End_Joint
 
@@ -839,8 +840,8 @@ RBJoint
 	child rFoot_tmp
 	jointCPos 0 0 0
 	jointPPos 0 -0.225 0
-	jointLimits -0.7 0.7
-	defaultAngle 0.0
+	jointLimits -0.6 0.7
+	defaultAngle -0.0
 /End_Joint
 
 RBJoint
