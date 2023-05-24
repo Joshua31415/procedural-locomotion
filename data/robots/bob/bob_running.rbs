@@ -316,7 +316,7 @@ RB
 
 	collisionSphere 0.03 0 0.015 0.01
 	collisionSphere -0.03 0 0.015 0.01
-	endEffector 0 0 0 0.0001 0.0
+	endEffector 0 0 0 0.03 0.0
 
 /End_RB
 
@@ -762,7 +762,7 @@ RBJoint
 	child lFoot_tmp
 	jointCPos 0 0 0
 	jointPPos 0 -0.225 0
-	jointLimits -0.5 0.9
+	jointLimits -0.7 0.7
 	defaultAngle 0.0
 /End_Joint
 
@@ -773,7 +773,7 @@ RBJoint
 	child lFoot
 	jointCPos 0 0.028125 -0.03
 	jointPPos 0 0 0
-	jointLimits -0.1 0.1
+	jointLimits -0.5 0.5
 	defaultAngle 0.0
 /End_Joint
 
