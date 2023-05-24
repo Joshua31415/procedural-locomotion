@@ -57,15 +57,11 @@ public:
     std::array<bool, 2> heelStartSet;
     std::array<double, 2> ankleAngleStarts = {0.0, 0.0};
     std::array<V3D, 2> defaultHeelToToe;
-    double shoulderAmplitudeDegree = 5.0; // in degree
-    double shoulderAmplitude = shoulderAmplitudeDegree * twoPi / 360.0;
-    double shoulderMin = shoulderAmplitude;
-    double shoulderMax = -shoulderAmplitude; // negative rotation: moves arm forward
+ 
+    double shoulderMin;
+    double shoulderMax; // negative rotation: moves arm forward
     Trajectory1D shoulderJointTrajectory;
-
-    double elbowMin = -0.25;
-    double elbowMax = -0.45;
-    Trajectory1D elbowJointTrajectory;
+    Trajectory1D elbowJointOffsetTrajectory;
 
     Trajectory1D hipTraj;
     Trajectory1D kneeTraj;
@@ -74,7 +70,7 @@ public:
 
     // for upper body
     int spineIdx;
-    double spineAmplitudeDegree = 2.0;
+    double spineAmplitudeDegree = 7.0;
     double spineAmplitude = toRad(spineAmplitudeDegree);
     int neckIdx;
 
@@ -211,6 +207,18 @@ public:
         verticalOffsetTraj.addKnot(0.65, -0.06);
         verticalOffsetTraj.addKnot(0.9, 0.02);
         verticalOffsetTraj.addKnot(1.0, -0.03);
+
+        
+        shoulderMax = toRad(-15.0);
+        shoulderMin = 0.5;
+        shoulderJointTrajectory.addKnot(stanceStart, shoulderMax);
+        shoulderJointTrajectory.addKnot(swingStart, shoulderMin);
+        shoulderJointTrajectory.addKnot(heelStrikeStart, shoulderMax);
+
+        double elbowOffsetAmplitude = 25.0;
+        elbowJointOffsetTrajectory.addKnot(stanceStart, toRad(-elbowOffsetAmplitude));
+        elbowJointOffsetTrajectory.addKnot(swingStart, toRad(elbowOffsetAmplitude));
+        elbowJointOffsetTrajectory.addKnot(heelStrikeStart, toRad(-elbowOffsetAmplitude));
     }
 
     /**
@@ -242,25 +250,6 @@ public:
 
         t += dt;
 
-        /*
-        for (int i : {0, 1}) {
-            setToesToFloor(i);
-            setToeTarget(i, toeTargets[i]);
-            setHeelToFloor(i);
-            setHeelTarget(i, heelTargets[i]);
-        }
-        ikSolver->solve();
-        gcrr.syncGeneralizedCoordinatesWithRobotState();
-        */
-        for (int i : {0, 1}) {
-            // makeFootParallelToGround(i);
-        }
-        //return;
-        /*
-        for (int i : {0, 1}) {
-            setLegAngles(i);
-        }
-        */
         // use the toe as the targeted endeffector in the stance phase
         // use the heel as the targeted endeffector in the swing phase
         // idx i == 0 <-> right leg
@@ -298,7 +287,9 @@ public:
                     setToeTarget(i, toeTargets[i]);
                     setHeelTarget(i, heelTargets[i]);
             }
+            setArmAngles(i);
         }
+        setSpineAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         /*
@@ -577,8 +568,8 @@ public:
         double shoulderTarget = shoulderJointTrajectory.evaluate_catmull_rom(cyclePercent);
         q(6 + armJointIndices[armIdx][0]) = shoulderTarget;
 
-        double elbowTarget = elbowJointTrajectory.evaluate_catmull_rom(cyclePercent);
-        q(6 + armJointIndices[armIdx][1]) = elbowTarget;
+        double elbowOffset = elbowJointOffsetTrajectory.evaluate_catmull_rom(cyclePercent);
+        q(6 + armJointIndices[armIdx][1]) = -0.5 * pi + elbowOffset;
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
