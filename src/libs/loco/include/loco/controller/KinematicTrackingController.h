@@ -37,7 +37,7 @@ public:
     const double twoPi = pi * 2.0;
         
     double t = 0;
-    double cycleLength = 1.25; // in seconds
+    double cycleLength = 0.8; // in seconds
 
     double stanceStart = 0.0; // in percent
     double swingStart = 0.5; // in percent
@@ -49,8 +49,9 @@ public:
     std::array<P3D, 2> swingTargets;
     std::array<P3D, 2> heelStrikeTargets;
     std::array<Trajectory3D, 2> swingTrajectories;
-    std::array<std::array<int, 4>, 2> footJointIndices;
+    std::array<std::array<int, 5>, 2> footJointIndices;
     std::array<P3D, 2> toeTargets;
+    std::array<P3D, 2> toeStrikeTarget;
     std::array<P3D, 2> heelTargets;
     std::array<P3D, 2> heelStarts;
     std::array<P3D, 2> heelEnds;
@@ -107,13 +108,14 @@ public:
             heelEnds[i] = pHeel;
             heelStartSet[i] = false;
             toeTargets[i] = pToes;
+            toeStrikeTarget[i] = pToes;
 //            heelHeight[i] = pHeel.y;
             swingTrajectories[i].addKnot(0, V3D(pHeel));
             swingTrajectories[i].addKnot(1, V3D(pHeel));
         }
 
-        std::array lLegJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint"};
-        std::array rLegJoints = {"rHip_1", "rKnee", "rAnkle_1", "rToeJoint"};
+        std::array lLegJoints = {"lHip_1", "lKnee", "lAnkle_1", "lToeJoint", "lAnkle_2"};
+        std::array rLegJoints = {"rHip_1", "rKnee", "rAnkle_1", "rToeJoint", "rAnkle_2"};
         for (int i = 0; i < lLegJoints.size(); ++i) {
             int lIdx = robot->getJointIndex(lLegJoints[i]);
             int rIdx = robot->getJointIndex(rLegJoints[i]);
@@ -198,6 +200,7 @@ public:
                 }
                 setToeTarget(i, toeTargets[i]);
             break; case Phase::Swing:
+                setHipAngleToTangent(i);
                 moveToesBackToDefault(i);
                 setHeelTarget(i, heelTargets[i]);
             break; case Phase::HeelStrike:
@@ -227,7 +230,7 @@ public:
                 heelTargets[i] = computeHeelTargetSwing(i);
             } else {
                 toeTargets[i] = computeToeTarget(i, nextPhase);
-                heelTargets[i] = computeHeelTarget(i, nextPhase);    
+                heelTargets[i] = computeHeelTarget(i, nextPhase);
             }
             /*
             toeTargets[i] = computeToeTarget(i, nextPhase);
@@ -237,7 +240,57 @@ public:
                 computeEarlyStanceHeelStrike(i);
         }
 
+        setAnklesToZero();
+
         gcrr.syncGeneralizedCoordinatesWithRobotState();
+    }
+
+    void setHipAngleToTangent(int legIdx){
+        const auto hipJointIndex = (legIdx == 0) ?
+                robot->getJointByName("rHip_torsion")->jIndex
+            :   robot->getJointByName("lHip_torsion")->jIndex;
+
+//        const double dtSpline = remap(swingStart + dt, swingStart, heelStrikeStart);
+//
+//        const double tSpline = remap(getCyclePercent(legIdx, t), swingStart, heelStrikeStart);
+//
+//
+//        const auto tangent = (swingTrajectories[legIdx].evaluate_catmull_rom(tSpline+dtSpline)
+//                             - swingTrajectories[legIdx].evaluate_catmull_rom(tSpline))
+//                                 .normalized();
+
+        dVector q;
+        gcrr.getQ(q);
+
+        double cyclePercent = getCyclePercent(legIdx, t);
+
+        q(6 + hipJointIndex) = lerp(q(6 + hipJointIndex), 0.0, remap(cyclePercent, swingStart, heelStrikeStart));
+
+
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
+    }
+
+    void setAnklesToZero(){
+
+        dVector q;
+        gcrr.getQ(q);
+
+
+        double rCyclePercent = getCyclePercent(0, t);
+        double lCyclePercent = getCyclePercent(1, t);
+
+        double lAngle = q(6 + robot->getJointByName("lHip_2")->jIndex);
+        double rAngle = q(6 + robot->getJointByName("rHip_2")->jIndex);
+
+
+        q(6 + robot->getJointByName("rAnkle_2")->jIndex) = -rAngle;//lerp(rAngle, 0.0, remap(rCyclePercent, heelStrikeStart, 1.0));
+        q(6 + robot->getJointByName("lAnkle_2")->jIndex) = -lAngle;//lerp(lAngle, 0.0, remap(lCyclePercent, heelStrikeStart, 1.0));
+
+
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
+
     }
 
     void addArmTargets(double deltaT) {
@@ -262,7 +315,6 @@ public:
         heelEnds[i] = (
             heel->limbRoot->getWorldCoordinates() + heading * heel->defaultEEOffsetWorld  // at it's default position
             + velocity * cycleLength * (heelStrikeStart - swingStart)       // where the default should be at the end of the swing phase
-            //TODO add rotational velocity
             );
 
         if((robot->getHeading() * robot->getForward()).dot(velocity) >= 0){
@@ -275,13 +327,14 @@ public:
 
 
         auto tOffset = (swingStart - stanceStart)*cycleLength;
-        std::cout << planner->getSimTime() << ' ' << planner->getSimTime() + tOffset << ' ' << tOffset << '\n';
 
         Quaternion currentOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime());
         Quaternion futureOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + tOffset);
 
+        //Total displacement of the heel rotated to default pose
         V3D heelDiff = currentOrientation.inverse() * V3D(heelEnds[i] - heelStarts[i]);
 
+        //spline points get computed by piecewise application of rotation during strike phase
         V3D p1 = V3D(heelStarts[i] + currentOrientation * heelDiff * 0.25);
         V3D p2 = p1 + currentOrientation.slerp(0.25, futureOrientation) * heelDiff * 0.5;
         V3D p3 = p2 + currentOrientation.slerp(0.75, futureOrientation) * heelDiff * 0.25;
@@ -332,10 +385,8 @@ public:
         break;case Phase::HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
-            P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
-            pFinal[1] = toeHeight;
             double cyclePercent = getCyclePercent(i, t);
-            return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
+            return lerp(pInitial, toeStrikeTarget[i], remap(cyclePercent, heelStrikeStart, 1.0));
         }
     }
 
@@ -359,6 +410,12 @@ public:
 
             return lerp(heelStarts[i], pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
         } else if (nextPhase == Phase::HeelStrike) {
+
+            P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
+            pFinal[1] = toeHeight;
+
+            toeStrikeTarget[i] = pFinal;
+
             P3D pHeel = heel->getEEWorldPos();
             pHeel[1] = heelHeight;
             heelStartSet[i] = false;
@@ -370,7 +427,7 @@ public:
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
-        for (int i = 0; i < 2; ++i) {
+        for (int i : {0, 1}) {
             angle += q(footJointIndices[footIdx][i] + 6);
         }
         double cyclePercent = getCyclePercent(footIdx, t);
@@ -501,8 +558,8 @@ public:
         ikSolver->addEndEffectorTarget(toes->eeRB, toes->ee->endEffectorOffset, pTarget);
     }
 
+    // remap t in [a, b] to [0, 1]
     static double remap(double time, double a, double b) {
-        // remap t in [a, b] to [0, 1]
         return (time - a) / (b - a);
     }
 
@@ -572,6 +629,7 @@ public:
                     }
                     drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
                 break;case HeelStrike:
+                    drawSphere(toeStrikeTarget[leg], 0.02, *shader, {0, 1, 0});
                     drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
             }
