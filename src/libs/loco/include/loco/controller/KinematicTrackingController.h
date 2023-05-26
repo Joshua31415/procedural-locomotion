@@ -434,7 +434,7 @@ public:
         gcrr.getQ(q);
 
         double cyclePercent = getCyclePercent(0, t);
-        double spineTarget = spineAmplitude * sin(twoPi * cyclePercent);
+        double spineTarget =  spineAmplitude * sin(twoPi * cyclePercent - pi * 3/5);
         q(6 + spineIdx) = spineTarget;
         q(6 + neckIdx) = -spineTarget; // so that bob looks straight ahead
         gcrr.setQ(q);
