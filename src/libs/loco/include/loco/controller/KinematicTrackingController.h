@@ -65,6 +65,7 @@ public:
 
     double elbowMin = -0.25;
     double elbowMax = -0.45;
+    double elbowswingoffset = 0.03;
     Trajectory1D elbowJointTrajectory;
 
     double dt = 1./30;
@@ -140,14 +141,14 @@ public:
         //shoulderJointTrajectory.addKnot(stanceStart, shoulderMax);
         //shoulderJointTrajectory.addKnot(0.65, shoulderMax);
         //shoulderJointTrajectory.addKnot(1.0, 0.0);
-        
+
         shoulderJointTrajectory.addKnot(stanceStart, shoulderMax);
         shoulderJointTrajectory.addKnot(swingStart, shoulderMin);
         shoulderJointTrajectory.addKnot(heelStrikeStart, shoulderMax);
 
         elbowJointTrajectory.addKnot(stanceStart, elbowMax);
-        elbowJointTrajectory.addKnot(swingStart, elbowMin);
-        elbowJointTrajectory.addKnot(heelStrikeStart, elbowMax);
+        elbowJointTrajectory.addKnot(swingStart + elbowswingoffset, elbowMin);
+        elbowJointTrajectory.addKnot(heelStrikeStart + elbowswingoffset, elbowMax);
     }
 
     /**
