@@ -478,11 +478,20 @@ public:
         double cyclePercent = getCyclePercent(syncedLegIdx, t);
         double phase = getPhase(syncedLegIdx, t);
 
-        double shoulderTarget = shoulderJointTrajectory.evaluate_catmull_rom(cyclePercent);
-        q(6 + armJointIndices[armIdx][0]) = shoulderTarget;
+        // for the first frame
+        if (t <= cycleLength){
+            double shoulderTarget = shoulderJointTrajectory.evaluate_catmull_rom(cyclePercent);
+            q(6 + armJointIndices[armIdx][0]) = lerp(q(6 + armJointIndices[armIdx][0]), shoulderTarget, cyclePercent);
+            double elbowTarget = elbowJointTrajectory.evaluate_catmull_rom(cyclePercent);
+            q(6 + armJointIndices[armIdx][1]) = lerp(q(6 + armJointIndices[armIdx][1]), elbowTarget, cyclePercent);
+        }
+        else {
+            double shoulderTarget = shoulderJointTrajectory.evaluate_catmull_rom(cyclePercent);
+            q(6 + armJointIndices[armIdx][0]) = shoulderTarget;
+            double elbowTarget = elbowJointTrajectory.evaluate_catmull_rom(cyclePercent);
+            q(6 + armJointIndices[armIdx][1]) = elbowTarget;
+        }
 
-        double elbowTarget = elbowJointTrajectory.evaluate_catmull_rom(cyclePercent);
-        q(6 + armJointIndices[armIdx][1]) = elbowTarget;
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
