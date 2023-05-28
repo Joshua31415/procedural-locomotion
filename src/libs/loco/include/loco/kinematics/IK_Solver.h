@@ -68,7 +68,6 @@ public:
                 residual[2 + 3 * i] = error(2);
                 ++i;
             }
-
             return true;
         }
 
@@ -85,50 +84,51 @@ public:
 
 
     void solve(int nSteps = 10) {
-        GeneralizedCoordinatesRobotRepresentation gcrr(robot);
+        if (!endEffectorTargets.empty()) {
+            GeneralizedCoordinatesRobotRepresentation gcrr(robot);
 
-        CostFunctor* costFunctor = new CostFunctor(gcrr, endEffectorTargets, nJoints);
-        ceres::DynamicNumericDiffCostFunction<CostFunctor, ceres::CENTRAL>* costFunction =
-            (new ceres::DynamicNumericDiffCostFunction<CostFunctor, ceres::CENTRAL>(costFunctor));
-        costFunction->SetNumResiduals(3 * endEffectorTargets.size());
-        costFunction->AddParameterBlock(nJoints);
+            CostFunctor* costFunctor = new CostFunctor(gcrr, endEffectorTargets, nJoints);
+            ceres::DynamicNumericDiffCostFunction<CostFunctor, ceres::CENTRAL>* costFunction =
+                (new ceres::DynamicNumericDiffCostFunction<CostFunctor, ceres::CENTRAL>(costFunctor));
+            costFunction->SetNumResiduals(3 * endEffectorTargets.size());
+            costFunction->AddParameterBlock(nJoints);
 
-        ceres::Solver::Options options;
-        options.linear_solver_type = ceres::DENSE_QR;
+            ceres::Solver::Options options;
+            options.linear_solver_type = ceres::DENSE_QR;
+            options.max_num_iterations = 25;
+            dVector qOld;
+            gcrr.getQ(qOld);
 
-        dVector qOld;
-        gcrr.getQ(qOld);
+            dVector qNew = qOld.tail(nJoints);
+            double* pData = &qNew(0);
 
-        dVector qNew = qOld.tail(nJoints);
-        double* pData = &qNew(0);
+            ceres::Problem problem;
+            problem.AddParameterBlock(pData, nJoints);
+            for (int i = 0; i < nJoints; ++i) {
+                problem.SetParameterLowerBound(pData, i, jointLimits(i, 0));
+                problem.SetParameterUpperBound(pData, i, jointLimits(i, 1));
+            }
+            problem.AddResidualBlock(costFunction, nullptr, pData);
 
-        ceres::Problem problem;
-        problem.AddParameterBlock(pData, nJoints);
-        for (int i = 0; i < nJoints; ++i) {
-            problem.SetParameterLowerBound(pData, i, jointLimits(i, 0));
-            problem.SetParameterUpperBound(pData, i, jointLimits(i, 1));
+            ceres::Solver::Summary summary;
+            ceres::Solve(options, &problem, &summary);
+            //std::cout << summary.BriefReport() << "\n";
+
+            for (int i = 0; i < nJoints; ++i) {
+                qOld(6 + i) = qNew(i);
+            }
+            gcrr.setQ(qOld);
+
+            // ceres takes ownership of the costFunction and deletes it
+            // delete costFunction;
+            gcrr.syncRobotStateWithGeneralizedCoordinates();
+            // clear end effector targets
+            // we will add targets in the next step again.
+            endEffectorTargets.clear();
         }
-        problem.AddResidualBlock(costFunction, nullptr, pData);
-
-        ceres::Solver::Summary summary;
-        ceres::Solve(options, &problem, &summary);
-//        std::cout << summary.BriefReport() << "\n";
-
-        for (int i = 0; i < nJoints; ++i) {
-            qOld(6 + i) = qNew(i);
-        }
-        gcrr.setQ(qOld);
-
-
-        // ceres takes ownership of the costFunction and deletes it
-        // delete costFunction;
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
-        // clear end effector targets
-        // we will add targets in the next step again.
-        endEffectorTargets.clear();
     }
 
-private:
+public:
     std::shared_ptr<Robot> robot;
     std::vector<IK_EndEffectorTargets> endEffectorTargets;
     Matrix jointLimits;

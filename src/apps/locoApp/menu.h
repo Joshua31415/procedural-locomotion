@@ -25,18 +25,18 @@ const std::vector<ModelOption> modelOptions = {
     {
         ModelOption::Type::BOB,                 //
         "Bob",                                  //
-        CRL_DATA_FOLDER "/robots/bob/bob.rbs",  //
+        CRL_DATA_FOLDER "/robots/bob/bob_running.rbs",  //
         {
-            {"rFoot", "rFoot"}, 
-            {"lFoot", "lFoot"},
-            {"rLowerLeg", "rLowerLeg"},
-            {"lLowerLeg", "lLowerLeg"},
+            {"rFoot", "rToes"}, // {"rFoot", "rToes"} 
+            {"lFoot", "lToes"},
+            {"rLowerLeg", "rFoot"},
+            {"lLowerLeg", "lFoot"},
 //            {"lHand", "lHand"},
 //            {"rHand", "rHand"},
-            {"lLowerArm", "lLowerArm"},
-            {"rLowerArm", "rLowerArm"},
-            {"lUpperArm", "lUpperArm"},
-            {"rUpperArm", "rUpperArm"},
+           // {"lLowerArm", "lLowerArm"},
+            //{"rLowerArm", "rLowerArm"},
+            //{"lUpperArm", "lUpperArm"},
+            //{"rUpperArm", "rUpperArm"},
 
         },
         0.9,   //

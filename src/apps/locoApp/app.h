@@ -3,6 +3,7 @@
 #include <crl-basic/gui/application.h>
 
 #include "loco/controller/KinematicTrackingController.h"
+#include "loco/controller/RunningController.h"
 #include "loco/planner/GaitPlanner.h"
 #include "loco/planner/SimpleLocomotionTrajectoryPlanner.h"
 #include "menu.h"
@@ -283,7 +284,7 @@ private:
         planner_ = std::make_shared<crl::loco::SimpleLocomotionTrajectoryPlanner>(robot_);
         planner_->trunkHeight = m.baseTargetHeight;
         planner_->targetStepHeight = m.swingFootHeight;
-        controller_ = std::make_shared<crl::loco::KinematicTrackingController>(planner_);
+        controller_ = std::make_shared<crl::loco::RunningController>(planner_);
 
         // generate plan
         planner_->appendPeriodicGaitIfNeeded(gaitPlanner_->getPeriodicGait(robot_));
@@ -298,7 +299,7 @@ public:
     std::shared_ptr<crl::loco::LeggedRobot> robot_ = nullptr;
     std::shared_ptr<crl::loco::GaitPlanner> gaitPlanner_ = nullptr;
     std::shared_ptr<crl::loco::LocomotionTrajectoryPlanner> planner_ = nullptr;
-    std::shared_ptr<crl::loco::KinematicTrackingController> controller_ = nullptr;
+    std::shared_ptr<crl::loco::RunningController> controller_ = nullptr;
 
     // parameters
     double dt = 1 / 60.0;
