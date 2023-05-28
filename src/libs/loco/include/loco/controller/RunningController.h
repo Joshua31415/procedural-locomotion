@@ -57,8 +57,9 @@ public:
         double shoulderMax = -0.26179938,
         double shoulderMin = 0.5,
         double spineAmplitudeDegree = 7.0,
-        double elbowOffsetAmplitude = 25.0,
-        double torsionOffsetAmplitude = 5.0
+        double elbowOffsetMaxDegree = -25.0,
+        double elbowOffsetMinDegree = 5.0,
+        double torsionOffsetAmplitudeDegree = 5.0
     ) 
         : LocomotionController(
             planner,
@@ -114,13 +115,13 @@ public:
         shoulderJointTrajectory.addKnot(swingStart, shoulderMin);
         shoulderJointTrajectory.addKnot(heelStrikeStart, shoulderMax);
 
-        elbowJointOffsetTrajectory.addKnot(stanceStart, toRad(-elbowOffsetAmplitude));
-        elbowJointOffsetTrajectory.addKnot(swingStart, toRad(elbowOffsetAmplitude));
-        elbowJointOffsetTrajectory.addKnot(heelStrikeStart, toRad(-elbowOffsetAmplitude));
+        elbowJointOffsetTrajectory.addKnot(stanceStart, toRad(elbowOffsetMaxDegree));
+        elbowJointOffsetTrajectory.addKnot(swingStart, toRad(elbowOffsetMinDegree));
+        elbowJointOffsetTrajectory.addKnot(heelStrikeStart, toRad(elbowOffsetMaxDegree));
 
-        shoulderTorsionOffsetTrajectory.addKnot(stanceStart, toRad(torsionOffsetAmplitude));
+        shoulderTorsionOffsetTrajectory.addKnot(stanceStart, toRad(torsionOffsetAmplitudeDegree));
         shoulderTorsionOffsetTrajectory.addKnot(swingStart, toRad(0.0));
-        shoulderTorsionOffsetTrajectory.addKnot(heelStrikeStart, toRad(torsionOffsetAmplitude));
+        shoulderTorsionOffsetTrajectory.addKnot(heelStrikeStart, toRad(torsionOffsetAmplitudeDegree));
     }
 
     /**
