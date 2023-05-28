@@ -27,7 +27,7 @@ namespace crl::loco {
  * affecting the robot's COM position or heading). We call this the body frame.
  *
  */
-
+#define M_PI 3.14159265358979323846
 class SimpleLocomotionTrajectoryPlanner : public LocomotionTrajectoryPlanner {
 protected:
     //store cartesian trajectories for each foot
@@ -99,6 +99,9 @@ public:
             + RBGlobals::worldUp * 0.01 * sin(4 * M_PI * cyclePercent) - P3D(0, 0.02, 0);
     }
 
+    virtual P3D getTargetTrunkPositionAtTime(double t) {
+        return P3D() + bFrameMotionPlan.bFramePosTrajectory.evaluate_linear(t);
+    }
     virtual double getTargetTrunkHeadingAtTime(double t) {
         return bFrameMotionPlan.bFrameHeadingTrajectory.evaluate_linear(t) + trunkYaw;
     }

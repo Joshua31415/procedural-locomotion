@@ -95,6 +95,8 @@ public:
     virtual P3D getTargetLimbEEPositionAtTime(const std::shared_ptr<RobotLimb>& l, double t) = 0;
 
     virtual P3D getTargetTrunkPositionAtTime(double t, double cyclePercent) = 0;
+    
+    virtual P3D getTargetTrunkPositionAtTime(double t) = 0;
 
     virtual double getTargetTrunkHeadingAtTime(double t) = 0;
 
@@ -106,6 +108,11 @@ public:
     }
 
     virtual Quaternion getTargetTrunkOrientationAtTime(double t, double cyclePercent) {
+        return getRotationQuaternion(getTargetTrunkHeadingAtTime(t), V3D(0, 1, 0)) *
+               getRotationQuaternion(trunkPitch, RBGlobals::worldUp.cross(robot->getForward())) * getRotationQuaternion(trunkRoll, robot->getForward());
+    }
+
+    virtual Quaternion getTargetTrunkOrientationAtTime(double t) {
         return getRotationQuaternion(getTargetTrunkHeadingAtTime(t), V3D(0, 1, 0)) *
                getRotationQuaternion(trunkPitch, RBGlobals::worldUp.cross(robot->getForward())) * getRotationQuaternion(trunkRoll, robot->getForward());
     }
