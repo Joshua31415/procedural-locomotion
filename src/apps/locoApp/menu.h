@@ -51,7 +51,7 @@ const std::vector<ModelOption> modelOptions = {
             {"rLowerLeg", "rFoot"},
             {"lLowerLeg", "lFoot"},
         },
-        0.88,   // base height
+        0.89,   // base height
         60.0 / 75.0,
         0.0,
         0.35,
