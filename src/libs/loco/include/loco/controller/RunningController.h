@@ -81,10 +81,10 @@ public:
         heelHeight = 0.018125;
         toeHeight = 0.008125;
 
-        double groundHeight = gui::SimpleGroundModel::getHeight(P3D(0, 0, 0));
-        std::cout << groundHeight << std::endl;
-        heelHeight -= gui::SimpleGroundModel::getHeight(P3D{0, 0, 0});
-        toeHeight = gui::SimpleGroundModel::getHeight(P3D{0, 0, 0});
+        //double groundHeight = gui::SimpleGroundModel::getHeight(P3D(0, 0, 0));
+        //std::cout << groundHeight << std::endl;
+        //heelHeight -= gui::SimpleGroundModel::getHeight(P3D{0, 0, 0});
+        //toeHeight = gui::SimpleGroundModel::getHeight(P3D{0, 0, 0});
         for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();  // + V3D(0, gui::SimpleGroundModel::getHeight(P3D{0, 0, 0}), 0);
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();  // + V3D(0, gui::SimpleGroundModel::getHeight(P3D{0, 0, 0}), 0);
