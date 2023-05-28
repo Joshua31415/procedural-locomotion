@@ -129,6 +129,13 @@ void drawRectangle(const P3D &p, const V3D &normal, const double &angle, const V
     drawCuboid(p, Quaternion(AngleAxisd(theta, v)) * Quaternion(AngleAxisd(angle, V3D(0, 1, 0))), dim, shader, color, alpha);
 }
 
+void drawEnvMap(const Shader &shader){
+    auto &envMap = rendering::GetCurrentContext()->environmentMap;
+    envMap.position = P3D{0, 0, 0};
+    envMap.scale = V3D(50, 50, 50);
+    envMap.draw(shader, V3D(0, 0, 0), 1.0);
+}
+
 // we could go from the vector "from" the long way, or the short way. The Vector
 // up will tell us which one is meant
 void drawSector(const P3D &p, const V3D &from, const V3D &to, const V3D &up, const Shader &shader, const V3D &color, float alpha) {
@@ -166,18 +173,21 @@ void drawSector(const P3D &p, const V3D &from, const V3D &to, const V3D &up, con
 }
 
 Model getGroundModel(double s) {
-    std::vector<Vertex> vertices = {
-        {glm::vec3(-s, 0, -s), glm::vec3(0, 1, 0), glm::vec2(0, 0)},
-        {glm::vec3(-s, 0, s), glm::vec3(0, 1, 0), glm::vec2(0, 1)},
-        {glm::vec3(s, 0, s), glm::vec3(0, 1, 0), glm::vec2(1, 1)},
-        {glm::vec3(s, 0, -s), glm::vec3(0, 1, 0), glm::vec2(1, 0)},
-    };
+//    std::vector<Vertex> vertices = {
+//        {glm::vec3(-s, -0.01, -s), glm::vec3(0, 1, 0), glm::vec2(0, 0)},
+//        {glm::vec3(-s, -0.01, s), glm::vec3(0, 1, 0), glm::vec2(0, 1)},
+//        {glm::vec3(s, -0.01, s), glm::vec3(0, 1, 0), glm::vec2(1, 1)},
+//        {glm::vec3(s, -0.01, -s), glm::vec3(0, 1, 0), glm::vec2(1, 0)},
+//    };
+//
+//    std::vector<unsigned int> indices = {0, 2, 1, 0, 3, 2};
+//    Mesh groundMesh(vertices, indices);
+//    Model ground;
+//    ground.meshes.push_back(groundMesh);
 
-    std::vector<unsigned int> indices = {0, 2, 1, 0, 3, 2};
-    Mesh groundMesh(vertices, indices);
+    // Direct import
+//    Model ground = Model(CRL_DATA_FOLDER "/meshes/Green Lawn.obj");
     Model ground;
-    ground.meshes.push_back(groundMesh);
-
     return ground;
 }
 
@@ -201,7 +211,19 @@ int SizableGroundModel::getSize() const {
 }
 
 void SizableGroundModel::draw(const Shader &shader, const double &intensity, const V3D &groundColor, const V3D &gridColor) {
-    ground.draw(shader, groundColor * intensity);
+    // Origin
+//    ground.draw(shader, groundColor * intensity);
+
+    // Black and White cross
+    for (int i = -size; i < size; ++i){
+        for (int j = -size; j < size; ++j){
+            if((i + j) % 2 == 0)
+                drawRectangle(P3D((double)i + 0.5, 0.0, (double)j + 0.5), V3D(0.0, -1.0, 0.0), 0.0, Vector2d(1.0, 1.0), shader, groundColor);
+            else
+                drawRectangle(P3D((double)i + 0.5 , 0.0, (double)j + 0.5), V3D(0.0, -1.0, 0.0), 0.0, Vector2d(1.0, 1.0), shader, gridColor);
+        }
+    }
+
     if (showGrid) {
         for (int i = -size; i <= size; i++) {
             drawRectangle(P3D((double)i, 0.001, 0.0), V3D(0.0, 1.0, 0.0), 0.0, Vector2d(gridThickness, (double)size * 2.0), shader, gridColor);
