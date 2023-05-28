@@ -23,6 +23,9 @@ namespace crl::loco {
  */
 class KinematicTrackingController : public LocomotionController {
 public:
+    const double elbowMin;
+    const double elbowMax;
+    const double elbowSwingOffset = 0.03;
 
     gui::SimpleGroundModel ground{};
 
@@ -57,7 +60,8 @@ public:
         double stanceStart,
         double swingStart,
         double heelStrikeStart,
-        double shoulderAmplitudeDegree = 5.0,
+        double shoulderMax = -0.0872664626, // 5 degree
+        double shoulderMin = 0.0872664626,
         double elbowMin = -0.25,
         double elbowMax = -0.45,
         double spineAmplitudeDegree = 2.0
@@ -68,11 +72,11 @@ public:
             stanceStart,
             swingStart,
             heelStrikeStart,
-            shoulderAmplitudeDegree,
-            elbowMin,
-            elbowMax,
-            spineAmplitudeDegree
-        ) {
+            shoulderMax,
+            shoulderMin,
+            spineAmplitudeDegree),
+          elbowMin(elbowMin),
+          elbowMax(elbowMax) {
         for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
@@ -332,22 +336,6 @@ public:
         }
     }
 
-    void setAnkleAngleDuringHeelStrike(int footIdx) {
-        dVector q;
-        gcrr.getQ(q);
-        double angle = 0;
-        for (int i : {0, 1}) {
-            angle += q(footJointIndices[footIdx][i] + 6);
-        }
-        double cyclePercent = getCyclePercent(footIdx, t);
-        double angleTarget = -angle;
-        double angleCurrent = q(6 + footJointIndices[footIdx][2]);
-
-        q(6 + footJointIndices[footIdx][2]) = lerp(angleCurrent, angleTarget, remap(cyclePercent, heelStrikeStart, 1.0));
-        gcrr.setQ(q);
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
-    }
-
     void makeToesParallelToGround(int footIdx) {
         dVector q;
         gcrr.getQ(q);
@@ -400,18 +388,6 @@ public:
             q(6 + armJointIndices[armIdx][1]) = elbowTarget;
         }
 
-        gcrr.setQ(q);
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
-    }
-
-    void setSpineAngle() {
-        dVector q;
-        gcrr.getQ(q);
-
-        double cyclePercent = getCyclePercent(0, t);
-        double spineTarget =  spineAmplitude * sin(twoPi * cyclePercent - pi * 3/5);
-        q(6 + spineIdx) = spineTarget;
-        q(6 + neckIdx) = -spineTarget; // so that bob looks straight ahead
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }

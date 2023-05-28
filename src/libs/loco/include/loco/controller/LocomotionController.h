@@ -31,13 +31,8 @@ public:
 
     // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
     std::array<std::array<int, 3>, 2> armJointIndices;
-    const double shoulderAmplitude;
     const double shoulderMin;
     const double shoulderMax;
-
-    const double elbowMin;
-    const double elbowMax;
-    const double elbowSwingOffset = 0.03;
 
     const double spineAmplitude;
     int spineIdx;
@@ -50,18 +45,15 @@ public:
     double heelToeDistance;
 public:
     LocomotionController(const std::shared_ptr<LocomotionTrajectoryPlanner>& planner, double cycleLength, double stanceStart, double swingStart,
-                         double heelStrikeStart, double shoulderAmplitudeDegree, double elbowMin, double elbowMax, double spinneAmplitudeDegree)
+                         double heelStrikeStart, double shoulderMax, double shoulderMin, double spinneAmplitudeDegree)
         : planner(planner),
           gcrr(planner->robot),
           cycleLength(cycleLength),
           stanceStart(stanceStart),
           swingStart(swingStart),
           heelStrikeStart(heelStrikeStart),
-          shoulderAmplitude(toRad(shoulderAmplitudeDegree)),
-          shoulderMin(toRad(shoulderAmplitudeDegree)),
-          shoulderMax(-toRad(shoulderAmplitudeDegree)),
-          elbowMin(elbowMin),
-          elbowMax(elbowMax),
+          shoulderMax(shoulderMax),
+          shoulderMin(shoulderMin),
           spineAmplitude(toRad(spinneAmplitudeDegree))
     {
         
@@ -190,6 +182,34 @@ public:
     void setToeTarget(int i, P3D pTarget) {
         auto foot = robot->getLimb(i);
         ikSolver->addEndEffectorTarget(foot->eeRB, foot->ee->endEffectorOffset, pTarget);
+    }
+
+    void setSpineAngle() {
+        dVector q;
+        gcrr.getQ(q);
+
+        double cyclePercent = getCyclePercent(0, t);
+        double spineTarget = spineAmplitude * sin(twoPi * cyclePercent);
+        q(6 + spineIdx) = spineTarget;
+        q(6 + neckIdx) = -spineTarget;  // so that bob looks straight ahead
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
+    }
+
+    void setAnkleAngleDuringHeelStrike(int footIdx) {
+        dVector q;
+        gcrr.getQ(q);
+        double angle = 0;
+        for (int i = 0; i < 2; ++i) {
+            angle += q(footJointIndices[footIdx][i] + 6);
+        }
+        double cyclePercent = getCyclePercent(footIdx, t);
+        double angleTarget = -angle;
+        double angleCurrent = q(6 + footJointIndices[footIdx][2]);
+
+        q(6 + footJointIndices[footIdx][2]) = lerp(angleCurrent, angleTarget, remap(cyclePercent, heelStrikeStart, 1.0));
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 };
 
