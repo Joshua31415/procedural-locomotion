@@ -164,7 +164,7 @@ public:
         double cyclePercent = getCyclePercent(0, planner->getSimTime() + dt);
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt, cyclePercent);
 //        targetPos[1] = 0.88;
-        Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
+        Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt, cyclePercent);
         robot->setRootState(targetPos, targetOrientation);
 
         

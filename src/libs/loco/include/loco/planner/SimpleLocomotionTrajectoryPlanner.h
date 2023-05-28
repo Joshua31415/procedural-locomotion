@@ -102,7 +102,17 @@ public:
         return bFrameMotionPlan.bFrameHeadingTrajectory.evaluate_linear(t) + trunkYaw;
     }
 
-    virtual Quaternion getTargetTrunkOrientationAtTime(double t) {
+    virtual Quaternion getTargetTrunkOrientationAtTime(double t, double cyclePercent) {
+        if(0 < cyclePercent && cyclePercent <= 0.25) {
+            trunkYaw = - sin(2 * M_PI * cyclePercent);
+        } else if(0.25 < cyclePercent && cyclePercent <= 0.5) {
+            trunkYaw = - cos(2 * M_PI * cyclePercent);
+        } else if(0.5 < cyclePercent && cyclePercent <= 0.75) {
+            trunkYaw = - sin(2 * M_PI * cyclePercent);
+        } else if(0.75 < cyclePercent && cyclePercent <= 1) {
+            trunkYaw = - cos(2 * M_PI * cyclePercent);
+        }
+        trunkYaw *= 0.01;
         return getRotationQuaternion(getTargetTrunkHeadingAtTime(t), V3D(0, 1, 0)) *
                getRotationQuaternion(trunkPitch, RBGlobals::worldUp.cross(robot->getForward())) * getRotationQuaternion(trunkRoll, robot->getForward());
     }

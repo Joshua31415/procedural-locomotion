@@ -101,11 +101,11 @@ public:
     virtual RBState getTargetTrunkState(double t) {
         RBState targetState;
         targetState.pos = getTargetTrunkPositionAtTime(t, t);
-        targetState.orientation = getTargetTrunkOrientationAtTime(t);
+        targetState.orientation = getTargetTrunkOrientationAtTime(t, t);
         return targetState;
     }
 
-    virtual Quaternion getTargetTrunkOrientationAtTime(double t) {
+    virtual Quaternion getTargetTrunkOrientationAtTime(double t, double cyclePercent) {
         return getRotationQuaternion(getTargetTrunkHeadingAtTime(t), V3D(0, 1, 0)) *
                getRotationQuaternion(trunkPitch, RBGlobals::worldUp.cross(robot->getForward())) * getRotationQuaternion(trunkRoll, robot->getForward());
     }
@@ -121,7 +121,7 @@ public:
     }
 
     virtual V3D getTargetTrunkAngularVelocityAtTime(double t, double dt = 1 / 30.0) {
-        return estimateAngularVelocity(getTargetTrunkOrientationAtTime(t), getTargetTrunkOrientationAtTime(t + dt), dt);
+        return estimateAngularVelocity(getTargetTrunkOrientationAtTime(t, t), getTargetTrunkOrientationAtTime(t + dt, t), dt);
     }
 
     virtual void drawTrajectories(gui::Shader* shader) {}
