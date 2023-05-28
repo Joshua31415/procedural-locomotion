@@ -535,6 +535,9 @@ public:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
             }
         }
+
+        drawEnvMap(*shader);
+
         /*
         for (auto leg : {0, 1}) {
             drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
