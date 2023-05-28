@@ -71,15 +71,25 @@ public:
             shoulderMin,
             spineAmplitudeDegree
         ) {
+        //gcrr.syncGeneralizedCoordinatesWithRobotState();
+        
+        //P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime());
+        //double height;
+        //std::cin >> height;
+        //targetPos[1] = height;
+        //Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime());
+        //robot->setRootState(targetPos /* + V3D(0, gui::SimpleGroundModel::getHeight(targetPos), 0)*/, targetOrientation);
+        //gcrr.syncGeneralizedCoordinatesWithRobotState();
+
         gcrr.getQ(qDefault);
         for (int i : {0, 1}) {
             auto toe = robot->getLimb(i);
             auto heel = robot->getLimb(i + 2);
             defaultHeelToToe[i] = V3D(heel->getEEWorldPos(), toe->getEEWorldPos());
+            // std::cout << heel->getEEWorldPos().y << "   " << toe->getEEWorldPos().y << std::endl;
         }
-
-        heelHeight = 0.018125;
-        toeHeight = 0.008125;
+        heelHeight = 0.008125;
+        toeHeight = -0.001875;
 
         //double groundHeight = gui::SimpleGroundModel::getHeight(P3D(0, 0, 0));
         //std::cout << groundHeight << std::endl;
