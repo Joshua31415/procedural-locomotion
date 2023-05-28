@@ -252,8 +252,8 @@ void SizableGroundModel::draw(const Shader &shader, const double &intensity, con
     */
     if (showGrid) {
         for (int i = -size; i <= size; i++) {
-            drawRectangle(P3D((double)i, 0.001, 0.0), V3D(0.0, 1.0, 0.0), 0.0, Vector2d(gridThickness, (double)size * 2.0), shader, gridColor);
-            drawRectangle(P3D(0.0, 0.001, (double)i), V3D(0.0, 1.0, 0.0), 0.0, Vector2d((double)size * 2.0, gridThickness), shader, gridColor);
+            drawRectangle(P3D((double)i, 0.00001, 0.0), V3D(0.0, 1.0, 0.0), 0.0, Vector2d(gridThickness, (double)size * 2.0), shader, gridColor);
+            drawRectangle(P3D(0.0, 0.00001, (double)i), V3D(0.0, 1.0, 0.0), 0.0, Vector2d((double)size * 2.0, gridThickness), shader, gridColor);
         }
     }
 }
