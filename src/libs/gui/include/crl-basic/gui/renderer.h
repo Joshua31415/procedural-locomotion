@@ -52,11 +52,65 @@ Model getGroundModel(double s = 100);
 
 class SimpleGroundModel {
 public:
-    Model ground = getGroundModel(20);
+    Model ground = [](double dim){
+        auto model = Model(CRL_DATA_FOLDER "/meshes/cube.obj");
+        model.scale = V3D{dim, 0.01, dim};
+        model.position = P3D{0, -0.05, 0};
+        return model;
+    }(100);
+
+//    Model ground = Model(CRL_DATA_FOLDER "/terrain/terrain.obj");
     Model grid1 = Model(CRL_DATA_FOLDER "/meshes/grid1.obj");
     Model grid2 = Model(CRL_DATA_FOLDER "/meshes/grid2.obj");
 
-    void draw(const Shader &shader, const V3D &col = V3D(0.7, 0.7, 0.9));
+//    Model sphere = [](){
+//        auto model = Model(CRL_DATA_FOLDER "/meshes/sphere.obj");
+//        constexpr double scale = 0.0;
+//        model.scale = V3D{scale, scale, scale};
+//        model.position = P3D{0.0, -scale/2 + 0.5, 5.0};
+//        return model;
+//    }();
+
+    void draw(const Shader &shader, double intensity, const V3D &col = V3D(0.7, 0.7, 0.9)) {
+        grid1.draw(shader, V3D(0.1, 0.1, 0.1));
+        grid2.draw(shader, V3D(0.5, 0.5, 0.5));
+        ground.draw(shader, col*intensity);
+//        sphere.draw(shader, col*intensity);
+    }
+
+    bool hitByRay(const P3D &r_o, const V3D &r_v, P3D &hitPoint) const{
+        P3D bestHit = hitPoint;
+        double currentBestSq = std::numeric_limits<double>::max();
+
+        for(const auto &model : {ground, /*sphere*/}){
+            if(model.hitByRay(r_o, r_v, hitPoint)){
+                const auto distSq = V3D(r_o, hitPoint).squaredNorm();
+                if(distSq < currentBestSq){
+                    bestHit = hitPoint;
+                    currentBestSq = distSq;
+                }
+            }
+        }
+
+
+        hitPoint = bestHit;
+        const bool didHit = currentBestSq != std::numeric_limits<double>::max();
+        return didHit;
+    }
+
+    //assumes that the terrain has no obstruction above
+    //returns absolute height of terrain, not relative to pos
+    [[nodiscard]] double getHeight(const P3D& position) const {
+
+        constexpr double maxHeight = 1000;
+
+        P3D hitPoint{};
+
+        if(hitByRay(P3D(position[0], maxHeight, position[2]), V3D(0, -1, 0), hitPoint)){
+            return hitPoint[1];
+        }
+        return 0.0;
+    }
 };
 
 class SizableGroundModel {
@@ -69,6 +123,10 @@ public:
 
     void draw(const Shader &shader, const double &intensity = 1.0, const V3D &groundColor = V3D(0.95, 0.95, 0.95),
               const V3D &gridColor = V3D(0.78431, 0.78431, 0.78431));
+
+    [[nodiscard]] double getHeight(const P3D& position) const {
+        return 0.0;
+    }
 
 private:
     int size;

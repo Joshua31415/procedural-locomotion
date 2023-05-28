@@ -627,22 +627,23 @@ void ShadowApplication::drawImGui() {
     Application::drawImGui();
 
     ImGui::Begin("Main Menu");
-    if (ImGui::TreeNode("Ground")) {
-        ImGui::Checkbox("Show Ground", &showGround);
-        static int size = ground.getSize();
-        static double thickness = ground.gridThickness;
-        if (ImGui::SliderInt("Ground Size", &size, 1.0, 100.0)) {
-            ground.setSize(size);
-            ground.gridThickness = thickness;
-        }
-        if (ImGui::SliderDouble("Grid Thickness", &thickness, 0.001, 0.1))
-            ground.gridThickness = thickness;
-        ImGui::Checkbox("Show Grid", &ground.showGrid);
-        ImGui::SliderDouble("Ground Intensity", &groundIntensity, 0.0, 10.0);
-        ImGui::ColorPicker3("Ground Color", &groundColor[0]);
-
-        ImGui::TreePop();
-    }
+    //TODO maybe add again
+//    if (ImGui::TreeNode("Ground")) {
+//        ImGui::Checkbox("Show Ground", &showGround);
+//        static int size = ground.getSize();
+//        static double thickness = ground.gridThickness;
+//        if (ImGui::SliderInt("Ground Size", &size, 1.0, 100.0)) {
+//            ground.setSize(size);
+//            ground.gridThickness = thickness;
+//        }
+//        if (ImGui::SliderDouble("Grid Thickness", &thickness, 0.001, 0.1))
+//            ground.gridThickness = thickness;
+//        ImGui::Checkbox("Show Grid", &ground.showGrid);
+//        ImGui::SliderDouble("Ground Intensity", &groundIntensity, 0.0, 10.0);
+//        ImGui::ColorPicker3("Ground Color", &groundColor[0]);
+//
+//        ImGui::TreePop();
+//    }
     if (ImGui::TreeNode("World frame")){
         ImGui::Checkbox("Show world frame", &show_world_frame);
         ImGui::SliderDouble("World frame length", &world_frame_length, 0.1, 1.0);

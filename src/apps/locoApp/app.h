@@ -294,6 +294,7 @@ private:
 
 public:
     // simulation
+
     std::shared_ptr<crl::loco::LeggedRobot> robot_ = nullptr;
     std::shared_ptr<crl::loco::GaitPlanner> gaitPlanner_ = nullptr;
     std::shared_ptr<crl::loco::LocomotionTrajectoryPlanner> planner_ = nullptr;

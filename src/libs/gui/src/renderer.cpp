@@ -191,11 +191,6 @@ Model getGroundModel(double s) {
     return ground;
 }
 
-void SimpleGroundModel::draw(const Shader &shader, const V3D &col) {
-    grid1.draw(shader, V3D(0.1, 0.1, 0.1));
-    grid2.draw(shader, V3D(0.5, 0.5, 0.5));
-    ground.draw(shader, col);
-}
 
 SizableGroundModel::SizableGroundModel(int size) {
     setSize(size);

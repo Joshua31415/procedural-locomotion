@@ -23,6 +23,9 @@ namespace crl::loco {
  */
 class KinematicTrackingController : public LocomotionController {
 public:
+
+    gui::SimpleGroundModel ground{};
+
     std::shared_ptr<LeggedRobot> robot;
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
     GeneralizedCoordinatesRobotRepresentation gcrr;
@@ -175,9 +178,8 @@ public:
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
-//        targetPos[1] = 0.88;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
-        robot->setRootState(targetPos, targetOrientation);
+        robot->setRootState(targetPos + V3D(0, ground.getHeight(targetPos), 0), targetOrientation);
 
         
         gcrr.syncGeneralizedCoordinatesWithRobotState();
@@ -194,9 +196,9 @@ public:
             switch(currentPhase) {
             break; case Phase::Stance:
                 makeToesParallelToGround(i);
-                setToesToFloor(i);
+                setToesToFloor(i, targetPos);
                 if(isEarlyStance(getCyclePercent(i, t))){
-                    setHeelToFloor(i);
+                    setHeelToFloor(i, targetPos);
                     setHeelTarget(i, heelTargets[i]);
                 }
                 setToeTarget(i, toeTargets[i]);
@@ -294,13 +296,6 @@ public:
 
     }
 
-    void addArmTargets(double deltaT) {
-        dt = deltaT;
-        for (uint i = 4; i < robot->getLimbCount(); i++) {
-            P3D target = planner->getTargetLimbEEPositionAtTime(robot->getLimb(i), planner->getSimTime() + dt);
-            ikSolver->addEndEffectorTarget(robot->getLimb(i)->eeRB, robot->getLimb(i)->ee->endEffectorOffset, target);
-        }
-    }
 
     void initializeSwingPhase(int i) {
         V3D velocity = planner->getTargetTrunkVelocityAtTime(planner->getSimTime() /* + dt*/);
@@ -324,7 +319,7 @@ public:
             assert(false && "Walking backwards is not supported yet.");
         }
 
-        heelEnds[i][1] = heelHeight;
+        heelEnds[i][1] = heelHeight + ground.getHeight(heelEnds[i]);
 
 
         auto tOffset = (swingStart - stanceStart)*cycleLength;
@@ -407,18 +402,18 @@ public:
                        + getP3D(robot->getHeading() * V3D(+ 0.05 * robot->getForward()));  // offset in forward direction
 
 
-            pEnd[1] = heelHeight;
+            pEnd[1] = heelHeight + ground.getHeight(pEnd);
 
             return lerp(heelStarts[i], pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
         } else if (nextPhase == Phase::HeelStrike) {
 
             P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
-            pFinal[1] = toeHeight;
+            pFinal[1] = toeHeight + ground.getHeight(pFinal);
 
             toeStrikeTarget[i] = pFinal;
 
             P3D pHeel = heel->getEEWorldPos();
-            pHeel[1] = heelHeight;
+            pHeel[1] = heelHeight + ground.getHeight(pHeel);
             heelStartSet[i] = false;
             return pHeel;
         }
@@ -554,7 +549,7 @@ public:
         auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
         heelTargets[i] = heel->getEEWorldPos();
-        heelTargets[i][1] = heelHeight;
+        heelTargets[i][1] = heelHeight + ground.getHeight(heelTargets[i]);
     }
 
     void computeHeelStrikeTarget(int i) {
@@ -611,12 +606,12 @@ public:
         }
     }
 
-    void setToesToFloor(int i) {
-        toeTargets[i][1] = toeHeight;
+    void setToesToFloor(int i, const P3D& position) {
+        toeTargets[i][1] = toeHeight + ground.getHeight(position);
     }
 
-    void setHeelToFloor(int i) {
-        heelTargets[i][1] = heelHeight;
+    void setHeelToFloor(int i, const P3D& position) {
+        heelTargets[i][1] = heelHeight + ground.getHeight(position);
     }
 
     void advanceInTime(double deltaT) override {
