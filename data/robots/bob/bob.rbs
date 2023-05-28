@@ -95,7 +95,7 @@ RB
 
 RB
 	name head
-	mesh robots/bob/meshes/head.obj
+	mesh robots/bob/meshes/head-hat.obj
 	meshTransformation 1 0 0 0	 0 -0.7875 -0.028125
 	mass	4.271484375					
 	moi	0.0281567573547363	0.0146415138244629	0.0225254058837891	0	0	0	
