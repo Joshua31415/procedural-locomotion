@@ -50,30 +50,51 @@ void drawSector(const P3D &p, const V3D &from, const V3D &to, const V3D &up, con
 
 Model getGroundModel(double s = 100);
 
+class SizableGroundModel {
+public:
+    SizableGroundModel(int size);
+
+    void setSize(int size);
+
+    int getSize() const;
+
+    void draw(const Shader &shader, const double &intensity = 1.0, const V3D &groundColor = V3D(0.95, 0.95, 0.95),
+              const V3D &gridColor = V3D(0.78431, 0.78431, 0.78431)) const;
+
+    [[nodiscard]] double getHeight(const P3D &position) const {
+        return 0.0;
+    }
+
+private:
+    int size;
+    Model ground;
+
+public:
+    double gridThickness = 0.025;
+    bool showGrid = true;
+};
+
 
 class SimpleGroundModel {
 public:
 
     static bool isFlat;
 
-    static Model groundFlat;
+    // static Model groundFlat;
     static Model groundUneven;
 
-    static Model grid1;
-    static Model grid2;
-
-    static const Model& getGround() {
-        if(isFlat)  return groundFlat;
-        else        return groundUneven;
-    }
+    static SizableGroundModel groundFlat;
+    // static Model grid1;
+    // static Model grid2;
 
 
     static void draw(const Shader &shader, double intensity, const V3D &col = V3D(0.7, 0.7, 0.9)) {
         if(isFlat){
-            grid1.draw(shader, V3D(0.1, 0.1, 0.1));
-            grid2.draw(shader, V3D(0.5, 0.5, 0.5));
+            groundFlat.draw(shader, intensity, col);
+        } else {
+            groundUneven.draw(shader, col * intensity);
         }
-        getGround().draw(shader, col*intensity);
+        // getGround().draw(shader, col*intensity);
 //        sphere.draw(shader, col*intensity);
     }
 
@@ -81,7 +102,7 @@ public:
         P3D bestHit = hitPoint;
         double currentBestSq = std::numeric_limits<double>::max();
 
-        for(const auto &model : {getGround(), /*sphere*/}){
+        for(const auto &model : {SimpleGroundModel::groundUneven /*sphere*/}){
             if(model.hitByRay(r_o, r_v, hitPoint)){
                 const auto distSq = V3D(r_o, hitPoint).squaredNorm();
                 if(distSq < currentBestSq){
@@ -100,40 +121,19 @@ public:
     //assumes that the terrain has no obstruction above
     //returns absolute height of terrain, not relative to pos
     [[nodiscard]] static double getHeight(const P3D& position) {
+        if (isFlat) {
+            return 0.0;
+        } else {
+            constexpr double maxHeight = 1000;
 
-        constexpr double maxHeight = 1000;
+            P3D hitPoint{};
 
-        P3D hitPoint{};
-
-        if(hitByRay(P3D(position[0], maxHeight, position[2]), V3D(0, -1, 0), hitPoint)){
-            return hitPoint[1];
+            if (hitByRay(P3D(position[0], maxHeight, position[2]), V3D(0, -1, 0), hitPoint)) {
+                return hitPoint[1];
+            }
+            return 0.0;
         }
-        return 0.0;
     }
-};
-
-class SizableGroundModel {
-public:
-    SizableGroundModel(int size);
-
-    void setSize(int size);
-
-    int getSize() const;
-
-    void draw(const Shader &shader, const double &intensity = 1.0, const V3D &groundColor = V3D(0.95, 0.95, 0.95),
-              const V3D &gridColor = V3D(0.78431, 0.78431, 0.78431));
-
-    [[nodiscard]] double getHeight(const P3D& position) const {
-        return 0.0;
-    }
-
-private:
-    int size;
-    Model ground;
-
-public:
-    double gridThickness = 0.025;
-    bool showGrid = true;
 };
 
 namespace rendering {
