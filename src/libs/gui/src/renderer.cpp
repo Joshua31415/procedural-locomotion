@@ -132,7 +132,7 @@ void drawRectangle(const P3D &p, const V3D &normal, const double &angle, const V
 void drawEnvMap(const Shader &shader){
     auto &envMap = rendering::GetCurrentContext()->environmentMap;
     envMap.position = P3D{0, 0, 0};
-    envMap.scale = V3D(50, 50, 50);
+    envMap.scale = V3D(100, 100, 100);
     envMap.draw(shader, V3D(0, 0, 0), 1.0);
 }
 
@@ -191,10 +191,39 @@ Model getGroundModel(double s) {
     return ground;
 }
 
+constexpr double planeSize = 100;
+
+bool SimpleGroundModel::isFlat = false;
+
+Model SimpleGroundModel::groundFlat = [](double dim){
+    auto model = Model(CRL_DATA_FOLDER "/meshes/cube.obj");
+    model.scale = V3D{dim, 0.01, dim};
+    model.position = P3D{0, -0.05, 0};
+    return model;
+}(planeSize);
+
+Model SimpleGroundModel::groundUneven = [](double dim){
+    auto model = Model(CRL_DATA_FOLDER "/terrain/terrain.obj");
+    model.scale = V3D{dim/40, dim/40, dim/40};
+    return model;
+}(planeSize);
+Model SimpleGroundModel::grid1 = [](double dim){
+    auto model = Model(CRL_DATA_FOLDER "/meshes/grid1.obj");
+    model.scale = V3D{dim/40, 1, dim/40};
+    return model;
+}(planeSize);
+
+Model SimpleGroundModel::grid2 = [](double dim){
+    auto model = Model(CRL_DATA_FOLDER "/meshes/grid2.obj");
+    model.scale = V3D{dim/40, 1, dim/40};
+    return model;
+}(planeSize);
+
 
 SizableGroundModel::SizableGroundModel(int size) {
     setSize(size);
 }
+
 
 void SizableGroundModel::setSize(int size) {
     this->size = size;

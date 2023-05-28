@@ -82,8 +82,8 @@ public:
         toeHeight = 0.008125;
 
         for (int i : {0, 1}) {
-            P3D pToes = robot->getLimb(i)->getEEWorldPos();
-            P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
+            P3D pToes = robot->getLimb(i)->getEEWorldPos() + V3D(0, gui::SimpleGroundModel::getHeight(P3D{0, 0, 0}), 0);
+            P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos() + V3D(0, gui::SimpleGroundModel::getHeight(P3D{0, 0, 0}), 0);
 
             heelStrikeTargets[i] = pToes;
             heelTargets[i] = pHeel;
@@ -143,7 +143,7 @@ public:
         double verticalOffset = verticalOffsetTraj.evaluate_catmull_rom(getCyclePercent(0, t + dt));
         targetPos[1] = planner->trunkHeight + verticalOffset * 0.9;
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
-        robot->setRootState(targetPos, targetOrientation);
+        robot->setRootState(targetPos + V3D(0, gui::SimpleGroundModel::getHeight(targetPos), 0), targetOrientation);
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         
 
@@ -262,7 +262,7 @@ public:
     void setDefault(int i) {
         auto heel = robot->getLimb(i + 2);
         heelEnds[i] = (
-            heel->limbRoot->getWorldCoordinates() + robot->getHeading() * heel->defaultEEOffsetWorld  // at it's default position
+            heel->limbRoot->getWorldCoordinates() + robot->getHeading() * heel->defaultEEOffsetWorld + V3D(0, gui::SimpleGroundModel::getHeight(heel->limbRoot->getWorldCoordinates()), 0)  // at it's default position
         );
         setHeelTarget(i, heelEnds[i]);
     }
@@ -284,9 +284,14 @@ public:
             + velocity * cycleLength * (heelStrikeStart - swingStart)  // where the base will be at the end of the swing phase
             + velocityDir * 0.15 // strike roughly under the COM
         );
+
+
         // heelEnds[i].z += 0.1; // just for testing while bob is standing
         
         // heelEnds[i][1] = 0.0; // magic number for running...
+
+        heelEnds[i][1] = gui::SimpleGroundModel::getHeight(heelEnds[i]); // offset due to ground displacement
+
 
         V3D p0 = V3D(heelStarts[i]);
         p0 += velocityDir * 0.05;
@@ -332,6 +337,7 @@ public:
             P3D pInitial = toes->getEEWorldPos();
             P3D pFinal = heel->getEEWorldPos() + defaultHeelToToe[i];
             // pFinal[1] = toeHeight;
+            pFinal[1] += gui::SimpleGroundModel::getHeight(pFinal);
             double cyclePercent = getCyclePercent(i, t);
             return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
         }
@@ -342,7 +348,7 @@ public:
         auto heel = robot->getLimb(i + 2);
         if (nextPhase == Phase::HeelStrike) {
             P3D pHeel = heel->getEEWorldPos();
-            pHeel[1] = heelHeight;
+            pHeel[1] = heelHeight + gui::SimpleGroundModel::getHeight(pHeel);
             heelStartSet[i] = false;
             return pHeel;
         }
@@ -488,11 +494,11 @@ public:
         auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
         heelTargets[i] = heel->getEEWorldPos();
-        heelTargets[i][1] = heelHeight;
+        heelTargets[i][1] = heelHeight + gui::SimpleGroundModel::getHeight(heelTargets[i]);
 
         
         toeTargets[i] = heelTargets[i] + defaultHeelToToe[i];
-        toeTargets[i][1] = toeHeight;
+        toeTargets[i][1] = toeHeight + gui::SimpleGroundModel::getHeight(toeTargets[i]);
     }
 
     void setHeelStrikeTarget(int i) {
@@ -535,6 +541,7 @@ public:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
             }
         }
+
         /*
         for (auto leg : {0, 1}) {
             drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
@@ -542,6 +549,8 @@ public:
         }
         */
         //        planner->drawTrajectories(shader);
+
+        drawEnvMap(*shader);
     }
 
     void plotDebugInfo() override {

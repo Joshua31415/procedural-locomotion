@@ -27,8 +27,6 @@ public:
     const double elbowMax;
     const double elbowSwingOffset = 0.03;
 
-    gui::SimpleGroundModel ground{};
-
     //Vector of point/radius/color
     std::vector<std::tuple<P3D, double, V3D>> drawList{};
 
@@ -118,7 +116,7 @@ public:
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
         Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
-        robot->setRootState(targetPos + V3D(0, ground.getHeight(targetPos), 0), targetOrientation);
+        robot->setRootState(targetPos + V3D(0, gui::SimpleGroundModel::getHeight(targetPos), 0), targetOrientation);
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         t += dt;
@@ -246,7 +244,7 @@ public:
             assert(false && "Walking backwards is not supported yet.");
         }
 
-        heelEnds[i][1] = heelHeight + ground.getHeight(heelEnds[i]);
+        heelEnds[i][1] = heelHeight + gui::SimpleGroundModel::getHeight(heelEnds[i]);
 
 
         auto tOffset = (swingStart - stanceStart)*cycleLength;
@@ -319,18 +317,18 @@ public:
                        + getP3D(robot->getHeading() * V3D(+ 0.05 * robot->getForward()));  // offset in forward direction
 
 
-            pEnd[1] = heelHeight + ground.getHeight(pEnd);
+            pEnd[1] = heelHeight + gui::SimpleGroundModel::getHeight(pEnd);
 
             return lerp(heelStarts[i], pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
         } else if (nextPhase == Phase::HeelStrike) {
 
             P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
-            pFinal[1] = toeHeight + ground.getHeight(pFinal);
+            pFinal[1] = toeHeight + gui::SimpleGroundModel::getHeight(pFinal);
 
             toeStrikeTarget[i] = pFinal;
 
             P3D pHeel = heel->getEEWorldPos();
-            pHeel[1] = heelHeight + ground.getHeight(pHeel);
+            pHeel[1] = heelHeight + gui::SimpleGroundModel::getHeight(pHeel);
             heelStartSet[i] = false;
             return pHeel;
         }
@@ -396,15 +394,15 @@ public:
         auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
         heelTargets[i] = heel->getEEWorldPos();
-        heelTargets[i][1] = heelHeight + ground.getHeight(heelTargets[i]);
+        heelTargets[i][1] = heelHeight + gui::SimpleGroundModel::getHeight(heelTargets[i]);
     }
 
     void setToesToFloor(int i, const P3D& position) {
-        toeTargets[i][1] = toeHeight + ground.getHeight(position);
+        toeTargets[i][1] = toeHeight + gui::SimpleGroundModel::getHeight(position);
     }
 
     void setHeelToFloor(int i, const P3D& position) {
-        heelTargets[i][1] = heelHeight + ground.getHeight(position);
+        heelTargets[i][1] = heelHeight + gui::SimpleGroundModel::getHeight(position);
     }
 
     void advanceInTime(double deltaT) override {

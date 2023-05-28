@@ -130,7 +130,9 @@ public:
         ImGui::Checkbox("Follow Robot with Camera", &followRobotWithCamera);
         if (ImGui::CollapsingHeader("Character")) {
             drawComboMenu("Model##character", modelOptions, selectedModel);
+            ImGui::Checkbox("Use Flat Terrain", &crl::gui::SimpleGroundModel::isFlat);
         }
+
         if (ImGui::CollapsingHeader("Draw")) {
             if (ImGui::Checkbox("Show meshes", &robot_->showMeshes)) {
                 robot_->showSkeleton = !robot_->showMeshes;
@@ -252,6 +254,7 @@ private:
         const auto &m = modelOptions[selectedModel];
         const char *rbsFile = m.filePath.c_str();
         robot_ = std::make_shared<crl::loco::LeggedRobot>(rbsFile);
+        //TODO make + crl::gui::SimpleGroundModel::getHeight(crl::P3D(0, 0, 0)) work here
         robot_->setRootState(crl::P3D(0, m.baseTargetHeight, 0));
         
         gaitPlanner_ = std::make_shared<crl::loco::BipedalGaitPlanner>();

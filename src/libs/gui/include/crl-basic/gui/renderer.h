@@ -50,39 +50,38 @@ void drawSector(const P3D &p, const V3D &from, const V3D &to, const V3D &up, con
 
 Model getGroundModel(double s = 100);
 
+
 class SimpleGroundModel {
 public:
-    Model ground = [](double dim){
-        auto model = Model(CRL_DATA_FOLDER "/meshes/cube.obj");
-        model.scale = V3D{dim, 0.01, dim};
-        model.position = P3D{0, -0.05, 0};
-        return model;
-    }(100);
 
-//    Model ground = Model(CRL_DATA_FOLDER "/terrain/terrain.obj");
-    Model grid1 = Model(CRL_DATA_FOLDER "/meshes/grid1.obj");
-    Model grid2 = Model(CRL_DATA_FOLDER "/meshes/grid2.obj");
+    static bool isFlat;
 
-//    Model sphere = [](){
-//        auto model = Model(CRL_DATA_FOLDER "/meshes/sphere.obj");
-//        constexpr double scale = 0.0;
-//        model.scale = V3D{scale, scale, scale};
-//        model.position = P3D{0.0, -scale/2 + 0.5, 5.0};
-//        return model;
-//    }();
+    static Model groundFlat;
+    static Model groundUneven;
 
-    void draw(const Shader &shader, double intensity, const V3D &col = V3D(0.7, 0.7, 0.9)) {
-        grid1.draw(shader, V3D(0.1, 0.1, 0.1));
-        grid2.draw(shader, V3D(0.5, 0.5, 0.5));
-        ground.draw(shader, col*intensity);
+    static Model grid1;
+    static Model grid2;
+
+    static const Model& getGround() {
+        if(isFlat)  return groundFlat;
+        else        return groundUneven;
+    }
+
+
+    static void draw(const Shader &shader, double intensity, const V3D &col = V3D(0.7, 0.7, 0.9)) {
+        if(isFlat){
+            grid1.draw(shader, V3D(0.1, 0.1, 0.1));
+            grid2.draw(shader, V3D(0.5, 0.5, 0.5));
+        }
+        getGround().draw(shader, col*intensity);
 //        sphere.draw(shader, col*intensity);
     }
 
-    bool hitByRay(const P3D &r_o, const V3D &r_v, P3D &hitPoint) const{
+    static bool hitByRay(const P3D &r_o, const V3D &r_v, P3D &hitPoint) {
         P3D bestHit = hitPoint;
         double currentBestSq = std::numeric_limits<double>::max();
 
-        for(const auto &model : {ground, /*sphere*/}){
+        for(const auto &model : {getGround(), /*sphere*/}){
             if(model.hitByRay(r_o, r_v, hitPoint)){
                 const auto distSq = V3D(r_o, hitPoint).squaredNorm();
                 if(distSq < currentBestSq){
@@ -100,7 +99,7 @@ public:
 
     //assumes that the terrain has no obstruction above
     //returns absolute height of terrain, not relative to pos
-    [[nodiscard]] double getHeight(const P3D& position) const {
+    [[nodiscard]] static double getHeight(const P3D& position) {
 
         constexpr double maxHeight = 1000;
 
