@@ -130,10 +130,10 @@ void drawRectangle(const P3D &p, const V3D &normal, const double &angle, const V
 }
 
 void drawEnvMap(const Shader &shader){
-    auto &sphere = rendering::GetCurrentContext()->cubeMap;
-    sphere.position = P3D{0, 0, 0};
-    sphere.scale = V3D(50, 50, 50);
-    sphere.draw(shader, V3D(0, 0, 0), 1.0);
+    auto &envMap = rendering::GetCurrentContext()->environmentMap;
+    envMap.position = P3D{0, 0, 0};
+    envMap.scale = V3D(50, 50, 50);
+    envMap.draw(shader, V3D(0, 0, 0), 1.0);
 }
 
 // we could go from the vector "from" the long way, or the short way. The Vector

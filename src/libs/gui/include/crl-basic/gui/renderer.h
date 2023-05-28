@@ -88,7 +88,7 @@ struct RenderingContext {
     // reusable primitive models
     Model sphere = Model(CRL_DATA_FOLDER "/meshes/sphere.obj");
     Model cube = Model(CRL_DATA_FOLDER "/meshes/cube.obj");
-    Model cubeMap = Model(CRL_DATA_FOLDER "/meshes/envmap.obj");
+    Model environmentMap = Model(CRL_DATA_FOLDER "/meshes/envmap.obj");
     Model cubeFrame = Model(CRL_DATA_FOLDER "/meshes/cube_frame.obj");
     Model cylinder = Model(CRL_DATA_FOLDER "/meshes/cylinder.obj");
     Model cone = Model(CRL_DATA_FOLDER "/meshes/cone.obj");
