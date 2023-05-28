@@ -650,6 +650,8 @@ public:
         for(const auto&[p, r, c] : drawList)
             drawSphere(p, r, *shader, c);
 
+        drawEnvMap(*shader);
+
         drawList.clear();
 
 //        planner->drawTrajectories(shader);

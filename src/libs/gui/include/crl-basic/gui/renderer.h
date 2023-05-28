@@ -41,6 +41,8 @@ void drawCircle(const P3D &center, const V3D &normal, const double &radius, cons
 void drawRectangle(const P3D &p, const V3D &normal, const double &angle, const Vector2d &dims, const Shader &shader, const V3D &color = V3D(1, 0, 0),
                    float alpha = 1.0);
 
+void drawEnvMap(const Shader &shader);
+
 /**
  * we could go from the vector "from" the long way, or the short way. The Vector up will tell us which one is meant
  */
@@ -86,6 +88,7 @@ struct RenderingContext {
     // reusable primitive models
     Model sphere = Model(CRL_DATA_FOLDER "/meshes/sphere.obj");
     Model cube = Model(CRL_DATA_FOLDER "/meshes/cube.obj");
+    Model cubeMap = Model(CRL_DATA_FOLDER "/meshes/envmap.obj");
     Model cubeFrame = Model(CRL_DATA_FOLDER "/meshes/cube_frame.obj");
     Model cylinder = Model(CRL_DATA_FOLDER "/meshes/cylinder.obj");
     Model cone = Model(CRL_DATA_FOLDER "/meshes/cone.obj");

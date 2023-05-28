@@ -153,7 +153,6 @@ public:
 
 
         const auto numSamples = static_cast<size_t>(60*gaitCycleLength);
-        assert(gaitCycleLength == numSamples.size());
 
         static size_t idx = 0;
         if(controller_->t != tPrev)
