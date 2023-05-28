@@ -119,6 +119,7 @@ public:
         trunkYaw *= 0.02 * bFrameMotionPlan.targetForwardSpeed;
         return getRotationQuaternion(getTargetTrunkHeadingAtTime(t), V3D(0, 1, 0)) *
                getRotationQuaternion(trunkPitch, RBGlobals::worldUp.cross(robot->getForward())) * getRotationQuaternion(trunkRoll, robot->getForward());
+        
     }
 
     virtual void drawTrajectories(gui::Shader* shader) {

@@ -116,7 +116,7 @@ public:
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         double cyclePercent = getCyclePercent(0, planner->getSimTime() + dt);
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt, cyclePercent);
-        Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt, cyclePercent);
+        Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
         robot->setRootState(targetPos + V3D(0, gui::SimpleGroundModel::getHeight(targetPos), 0), targetOrientation);
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
@@ -251,8 +251,8 @@ public:
 
         auto tOffset = (swingStart - stanceStart)*cycleLength;
 
-        Quaternion currentOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime(), cyclePercent);
-        Quaternion futureOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + tOffset, cyclePercent);
+        Quaternion currentOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime());
+        Quaternion futureOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + tOffset);
 
         //Total displacement of the heel rotated to default pose
         V3D heelDiff = currentOrientation.inverse() * V3D(heelEnds[i] - heelStarts[i]);
