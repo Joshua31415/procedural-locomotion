@@ -334,6 +334,7 @@ public:
             double cyclePercent = getCyclePercent(i, t);
             return lerp(pInitial, pFinal, remap(cyclePercent, heelStrikeStart, 1.0));
         }
+        return P3D(0, 0, 0);
     }
 
     P3D computeHeelTarget(int i, Phase nextPhase) {
@@ -345,6 +346,7 @@ public:
             return pHeel;
         }
         // result isnt actually used for any of the other phases
+        return P3D(0, 0, 0);
     }
 
     void makeFootParallelToGround(int footIdx) {
