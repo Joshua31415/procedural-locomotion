@@ -284,8 +284,6 @@ public:
             + velocity * cycleLength * (heelStrikeStart - swingStart)  // where the base will be at the end of the swing phase
             + velocityDir * 0.15 // strike roughly under the COM
         );
-
-
         // heelEnds[i].z += 0.1; // just for testing while bob is standing
         
         // heelEnds[i][1] = 0.0; // magic number for running...
@@ -541,7 +539,6 @@ public:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
             }
         }
-
         /*
         for (auto leg : {0, 1}) {
             drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
