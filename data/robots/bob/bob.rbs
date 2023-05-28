@@ -555,7 +555,7 @@ RBJoint
 	jointCPos 0 0 0
 	jointPPos 0 0 0
 	jointLimits -0.3 1.2
-	defaultAngle 0.13
+	defaultAngle 0.2
 /End_Joint
 
 RBJoint
@@ -652,7 +652,7 @@ RBJoint
 	jointCPos 0 0 0
 	jointPPos 0 0 0
 	jointLimits -1.2 0.3
-	defaultAngle -0.13
+	defaultAngle -0.2
 /End_Joint
 
 RBJoint
