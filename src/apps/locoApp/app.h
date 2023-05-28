@@ -253,13 +253,8 @@ private:
         const char *rbsFile = m.filePath.c_str();
         robot_ = std::make_shared<crl::loco::LeggedRobot>(rbsFile);
         robot_->setRootState(crl::P3D(0, m.baseTargetHeight, 0));
-        if (m.type == ModelOption::Type::DOG) {
-            robot_->showMeshes = false;
-            robot_->showSkeleton = true;
-            gaitPlanner_ = std::make_shared<crl::loco::QuadrupedalGaitPlanner>();
-        } else {
-            gaitPlanner_ = std::make_shared<crl::loco::BipedalGaitPlanner>();
-        }
+        
+        gaitPlanner_ = std::make_shared<crl::loco::BipedalGaitPlanner>();
 
         // add legs
         for (const auto& leg : m.legs) {
@@ -283,8 +278,23 @@ private:
         // setup planner and controller
         planner_ = std::make_shared<crl::loco::SimpleLocomotionTrajectoryPlanner>(robot_);
         planner_->trunkHeight = m.baseTargetHeight;
-        planner_->targetStepHeight = m.swingFootHeight;
-        controller_ = std::make_shared<crl::loco::RunningController>(planner_);
+        if (m.type == ModelOption::Type::BOB) {
+            controller_ = std::make_shared<crl::loco::KinematicTrackingController>(
+                planner_,
+                m.cycleLength,
+                m.stanceStart,
+                m.swingStart,
+                m.heelStrikeStart
+            );
+        } else if (m.type == ModelOption::Type::RUN) {
+            controller_ = std::make_shared<crl::loco::RunningController>(
+                planner_,
+                m.cycleLength,
+                m.stanceStart,
+                m.swingStart,
+                m.heelStrikeStart
+            );
+        }
 
         // generate plan
         planner_->appendPeriodicGaitIfNeeded(gaitPlanner_->getPeriodicGait(robot_));
@@ -299,7 +309,7 @@ public:
     std::shared_ptr<crl::loco::LeggedRobot> robot_ = nullptr;
     std::shared_ptr<crl::loco::GaitPlanner> gaitPlanner_ = nullptr;
     std::shared_ptr<crl::loco::LocomotionTrajectoryPlanner> planner_ = nullptr;
-    std::shared_ptr<crl::loco::RunningController> controller_ = nullptr;
+    std::shared_ptr<crl::loco::LocomotionController> controller_ = nullptr;
 
     // parameters
     double dt = 1 / 60.0;
