@@ -94,15 +94,26 @@ public:
         return P3D() + limbTrajectories[l].evaluate_linear(t);
     }
 
-    virtual P3D getTargetTrunkPositionAtTime(double t) {
-        return P3D() + bFrameMotionPlan.bFramePosTrajectory.evaluate_linear(t);  // +RBGlobals::worldUp.cross(robot->forward) * 0.05 * sin(5 * t);
+    virtual P3D getTargetTrunkPositionAtTime(double t, double cyclePercent) {
+        return P3D() + bFrameMotionPlan.bFramePosTrajectory.evaluate_linear(t) 
+            + RBGlobals::worldUp * 0.01 * sin(4 * M_PI * cyclePercent) - P3D(0, 0.02, 0);
     }
 
     virtual double getTargetTrunkHeadingAtTime(double t) {
         return bFrameMotionPlan.bFrameHeadingTrajectory.evaluate_linear(t) + trunkYaw;
     }
 
-    virtual Quaternion getTargetTrunkOrientationAtTime(double t) {
+    virtual Quaternion getTargetTrunkOrientationAtTime(double t, double cyclePercent) {
+        if(0 < cyclePercent && cyclePercent <= 0.25) {
+            trunkYaw = - sin(2 * M_PI * cyclePercent);
+        } else if(0.25 < cyclePercent && cyclePercent <= 0.5) {
+            trunkYaw = 1 - sin(2 * M_PI * cyclePercent);
+        } else if(0.5 < cyclePercent && cyclePercent <= 0.75) {
+            trunkYaw = - sin(2 * M_PI * cyclePercent);
+        } else if(0.75 < cyclePercent && cyclePercent <= 1) {
+            trunkYaw = - 1 - sin(2 * M_PI * cyclePercent);
+        }
+        trunkYaw *= 0.02 * bFrameMotionPlan.targetForwardSpeed;
         return getRotationQuaternion(getTargetTrunkHeadingAtTime(t), V3D(0, 1, 0)) *
                getRotationQuaternion(trunkPitch, RBGlobals::worldUp.cross(robot->getForward())) * getRotationQuaternion(trunkRoll, robot->getForward());
     }

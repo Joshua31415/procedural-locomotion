@@ -114,8 +114,9 @@ public:
     void computeAndApplyControlSignals(double deltaT) override {
         double dt = deltaT;
         gcrr.syncGeneralizedCoordinatesWithRobotState();
-        P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt);
-        Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt);
+        double cyclePercent = getCyclePercent(0, planner->getSimTime() + dt);
+        P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt, cyclePercent);
+        Quaternion targetOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + dt, cyclePercent);
         robot->setRootState(targetPos + V3D(0, gui::SimpleGroundModel::getHeight(targetPos), 0), targetOrientation);
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
@@ -229,6 +230,7 @@ public:
         auto heading = robot->getHeading();
 
         const double stepLength = velocity.norm() * cycleLength;
+        double cyclePercent = getCyclePercent(i, t);
 
 
         heelStarts[i] = heel->getEEWorldPos();
@@ -249,8 +251,8 @@ public:
 
         auto tOffset = (swingStart - stanceStart)*cycleLength;
 
-        Quaternion currentOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime());
-        Quaternion futureOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + tOffset);
+        Quaternion currentOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime(), cyclePercent);
+        Quaternion futureOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + tOffset, cyclePercent);
 
         //Total displacement of the heel rotated to default pose
         V3D heelDiff = currentOrientation.inverse() * V3D(heelEnds[i] - heelStarts[i]);
