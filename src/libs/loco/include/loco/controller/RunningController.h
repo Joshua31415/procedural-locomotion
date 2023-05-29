@@ -568,6 +568,9 @@ public:
         //        planner->drawTrajectories(shader);
 
         drawEnvMap(*shader);
+
+        if(!gui::SimpleGroundModel::isFlat)
+            gui::SimpleGroundModel::groundUneven.draw(*shader, V3D(0, 0, 0));
     }
 
     void plotDebugInfo() override {

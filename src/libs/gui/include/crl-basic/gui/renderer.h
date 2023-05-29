@@ -91,8 +91,6 @@ public:
     static void draw(const Shader &shader, double intensity, const V3D &col = V3D(0.7, 0.7, 0.9)) {
         if(isFlat){
             groundFlat.draw(shader, intensity, col);
-        } else {
-            groundUneven.draw(shader, col * intensity);
         }
         // getGround().draw(shader, col*intensity);
 //        sphere.draw(shader, col*intensity);
