@@ -175,9 +175,10 @@ public:
                 computeEarlyStanceHeelStrike(i);
         }
 
-        setAnklesToZero();
+        setAnkleTiltsToZero();
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
+
     }
 
     void setHipAngleToTangent(int legIdx){
@@ -206,14 +207,10 @@ public:
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
-    void setAnklesToZero(){
+    void setAnkleTiltsToZero(){
 
         dVector q;
         gcrr.getQ(q);
-
-
-        double rCyclePercent = getCyclePercent(0, t);
-        double lCyclePercent = getCyclePercent(1, t);
 
         double lAngle = q(6 + robot->getJointByName("lHip_2")->jIndex);
         double rAngle = q(6 + robot->getJointByName("rHip_2")->jIndex);
@@ -294,8 +291,11 @@ public:
         auto heel = robot->getLimb(i + 2);
 
         switch(nextPhase){
-        break;case Phase::Stance:
-            return toes->getEEWorldPos();
+        break;case Phase::Stance:{
+            P3D pInitial = toes->getEEWorldPos();
+            pInitial[1] = toeHeight + gui::SimpleGroundModel::getHeight(pInitial);
+            return pInitial;
+        }
 
         break;case Phase::Swing:
             return P3D(0, 0, 0);
