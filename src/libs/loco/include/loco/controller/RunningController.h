@@ -57,6 +57,8 @@ public:
         double shoulderMax = -0.26179938,
         double shoulderMin = 0.5,
         double spineAmplitudeDegree = 7.0,
+        double pelvisAmplitudeDegree_x = 7.0,
+        double pelvisAmplitudeDegree_z = 7.0,
         double elbowOffsetMaxDegree = -25.0,
         double elbowOffsetMinDegree = 5.0,
         double torsionOffsetAmplitudeDegree = 5.0
@@ -69,7 +71,9 @@ public:
             heelStrikeStart,
             shoulderMax,
             shoulderMin,
-            spineAmplitudeDegree
+            spineAmplitudeDegree,
+            pelvisAmplitudeDegree_x,
+            pelvisAmplitudeDegree_z
         ) {
         //gcrr.syncGeneralizedCoordinatesWithRobotState();
         
@@ -204,6 +208,7 @@ public:
             setArmAngles(i);
         }
         setSpineAngle();
+        setPelvisAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         /*
