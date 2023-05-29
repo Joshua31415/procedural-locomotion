@@ -444,7 +444,6 @@ public:
             drawSphere(p, r, *shader, c);
 
         drawEnvMap(*shader);
-
         drawList.clear();
         if(!gui::SimpleGroundModel::isFlat)
             gui::SimpleGroundModel::groundUneven.draw(*shader, V3D(0, 0, 0));

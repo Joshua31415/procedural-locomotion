@@ -42,11 +42,14 @@ public:
 
         // adjust light and camera
         const auto &center = robot_->getTrunk()->getWorldCoordinates(crl::P3D());
+        float yTarget = decltype(ground)::getHeight(center) + 0.9;
         if (followRobotWithCamera) {
             camera.target.x = (float)center.x;
+            camera.target.y = yTarget;
             camera.target.z = (float)center.z;
         }
         light.target.x() = center.x;
+        light.target.y() = yTarget;
         light.target.z() = center.z;
     }
 
