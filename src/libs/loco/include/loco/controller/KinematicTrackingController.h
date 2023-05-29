@@ -149,7 +149,7 @@ public:
             setArmAngles(i); 
         }
         setSpineAngle();
-        setPelvisAngle();
+        // setPelvisAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         for (int i : {0, 1}) {

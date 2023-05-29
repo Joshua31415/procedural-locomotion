@@ -217,7 +217,7 @@ public:
         q(6 + pelvisIdx[0]) = pelvisTarget_x;
         q(6 + pelvisIdx[1]) = pelvisTarget_y;
         q(6 + pelvisIdx[2]) = pelvisTarget_z;
-        q(6 + spineIdx) = -pelvisTarget;
+        q(6 + spineIdx) = -pelvisTarget_y;
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
