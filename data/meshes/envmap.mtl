@@ -8,5 +8,5 @@ Ks 0.000000 0.000000 0.000000
 Tr 1.000000
 illum 1
 Ns 0.000000
-map_Kd envmap.hdr
+map_Kd 1.hdr
 
