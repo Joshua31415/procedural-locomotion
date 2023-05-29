@@ -62,8 +62,10 @@ public:
         double shoulderMin = 0.0872664626,
         double elbowMin = -0.25,
         double elbowMax = -0.45,
-        double spineAmplitudeDegree = 2.0
-    ) 
+        double spineAmplitudeDegree = 2.0,
+        double pelvisAmplitudeDegree_x = 2.0,
+        double pelvisAmplitudeDegree_z = 2.0
+    )
         : LocomotionController(
             planner,
             cycleLength,
@@ -72,7 +74,9 @@ public:
             heelStrikeStart,
             shoulderMax,
             shoulderMin,
-            spineAmplitudeDegree),
+            spineAmplitudeDegree,
+            pelvisAmplitudeDegree_x,
+            pelvisAmplitudeDegree_z),
           elbowMin(elbowMin),
           elbowMax(elbowMax) {
         for (int i : {0, 1}) {
@@ -145,6 +149,7 @@ public:
             setArmAngles(i); 
         }
         setSpineAngle();
+        setPelvisAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         for (int i : {0, 1}) {
