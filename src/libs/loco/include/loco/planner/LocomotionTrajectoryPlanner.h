@@ -94,15 +94,22 @@ public:
 
     virtual P3D getTargetLimbEEPositionAtTime(const std::shared_ptr<RobotLimb>& l, double t) = 0;
 
+    virtual P3D getTargetTrunkPositionAtTime(double t, double cyclePercent) = 0;
+    
     virtual P3D getTargetTrunkPositionAtTime(double t) = 0;
 
     virtual double getTargetTrunkHeadingAtTime(double t) = 0;
 
     virtual RBState getTargetTrunkState(double t) {
         RBState targetState;
-        targetState.pos = getTargetTrunkPositionAtTime(t);
-        targetState.orientation = getTargetTrunkOrientationAtTime(t);
+        targetState.pos = getTargetTrunkPositionAtTime(t, t);
+        targetState.orientation = getTargetTrunkOrientationAtTime(t, t);
         return targetState;
+    }
+
+    virtual Quaternion getTargetTrunkOrientationAtTime(double t, double cyclePercent) {
+        return getRotationQuaternion(getTargetTrunkHeadingAtTime(t), V3D(0, 1, 0)) *
+               getRotationQuaternion(trunkPitch, RBGlobals::worldUp.cross(robot->getForward())) * getRotationQuaternion(trunkRoll, robot->getForward());
     }
 
     virtual Quaternion getTargetTrunkOrientationAtTime(double t) {
@@ -116,12 +123,12 @@ public:
     }
 
     virtual V3D getTargetTrunkVelocityAtTime(double t, double dt = 1 / 30.0) {
-        P3D delta = getTargetTrunkPositionAtTime(t + dt) - getTargetTrunkPositionAtTime(t);
+        P3D delta = getTargetTrunkPositionAtTime(t + dt, t) - getTargetTrunkPositionAtTime(t, t);
         return V3D(delta) / dt;
     }
 
     virtual V3D getTargetTrunkAngularVelocityAtTime(double t, double dt = 1 / 30.0) {
-        return estimateAngularVelocity(getTargetTrunkOrientationAtTime(t), getTargetTrunkOrientationAtTime(t + dt), dt);
+        return estimateAngularVelocity(getTargetTrunkOrientationAtTime(t, t), getTargetTrunkOrientationAtTime(t + dt, t), dt);
     }
 
     virtual void drawTrajectories(gui::Shader* shader) {}

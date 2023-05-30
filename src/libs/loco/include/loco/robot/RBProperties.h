@@ -139,6 +139,8 @@ public:
     bool inContact = false;
     // contact force (should be populated from physics engine or contact force estimator)
     V3D contactForce = V3D(0, 0, 0);
+    // float height of the endeffector when in the default pose
+    double defaultHeight = 0.0;
 };
 
 /**

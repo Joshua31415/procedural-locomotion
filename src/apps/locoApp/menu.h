@@ -10,7 +10,7 @@ namespace locoApp {
 struct ModelOption {
     enum class Type {
         BOB = 0,
-        DOG = 1,
+        RUN = 1,
     };
 
     Type type;
@@ -18,7 +18,10 @@ struct ModelOption {
     std::string filePath;
     std::vector<std::pair<std::string, std::string>> legs;
     double baseTargetHeight;
-    double swingFootHeight;
+    double cycleLength;
+    double stanceStart;
+    double swingStart;
+    double heelStrikeStart;
 };
 
 const std::vector<ModelOption> modelOptions = {
@@ -27,24 +30,32 @@ const std::vector<ModelOption> modelOptions = {
         "Bob",                                  //
         CRL_DATA_FOLDER "/robots/bob/bob.rbs",  //
         {
-            {"l", "lFoot"},
-            {"r", "rFoot"},
+            {"rFoot", "rFoot"}, 
+            {"lFoot", "lFoot"},
+            {"rLowerLeg", "rLowerLeg"},
+            {"lLowerLeg", "lLowerLeg"},
         },
-        0.9,   //
-        0.15,  //
+        0.9,   // base height
+        0.9,
+        0.0,
+        0.5,
+        0.9,
     },
     {
-        ModelOption::Type::DOG,                 //
-        "Dog",                                  //
-        CRL_DATA_FOLDER "/robots/dog/dog.rbs",  //
+        ModelOption::Type::RUN,                         //
+        "Running Bob",                                          //
+        CRL_DATA_FOLDER "/robots/bob/bob_running.rbs",  //
         {
-            {"fl", "tibia_0"},  //
-            {"hl", "tibia_1"},  //
-            {"fr", "tibia_2"},  //
-            {"hr", "tibia_3"},  //
+            {"rFoot", "rToes"},
+            {"lFoot", "lToes"},
+            {"rLowerLeg", "rFoot"},
+            {"lLowerLeg", "lFoot"},
         },
-        0.437,  //
-        0.1,    //
+        0.89,   // base height
+        60.0 / 75.0,
+        0.0,
+        0.35,
+        0.95,
     },
 };
 

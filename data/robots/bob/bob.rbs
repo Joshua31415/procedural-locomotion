@@ -95,7 +95,7 @@ RB
 
 RB
 	name head
-	mesh robots/bob/meshes/head.obj
+	mesh robots/bob/meshes/head-hat.obj
 	meshTransformation 1 0 0 0	 0 -0.7875 -0.028125
 	mass	4.271484375					
 	moi	0.0281567573547363	0.0146415138244629	0.0225254058837891	0	0	0	
@@ -138,6 +138,7 @@ RB
 
 	collisionSphere 0 0.16875 0 0.04	
 	collisionSphere 0 -0.16875 0 0.04
+	endEffector 0 0.16875 0 0 1.4625
 /End_RB
 
 RB
@@ -151,7 +152,8 @@ RB
 	mesh robots/bob/meshes/lLowerArm.obj
 	meshTransformation 1 0 0 0 	-0.16875 -0.16875 0
 	mass	0.8009033203125					
-	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0	
+	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0
+	endEffector 0 -0.16875 0 0 0.85
 /End_RB
 
 
@@ -171,7 +173,7 @@ RB
 	collisionSphere 0 -0.03 0 0.02	
 	collisionSphere 0 0.03 0 0.02	
 
-
+    endEffector 0 0 0 0 0.85
 /End_RB
 
 RB
@@ -207,7 +209,8 @@ RB
 	mass	2.4027099609375					
 	moi	0.02423240929842	0.00285087168216705	0.02423240929842	0	0	0	
 	collisionSphere 0 0.16875 0 0.04	
-	collisionSphere 0 -0.16875 0 0.04	
+	collisionSphere 0 -0.16875 0 0.04
+	endEffector 0 0.16875 0 0 1.4625
 /End_RB
 
 
@@ -216,7 +219,8 @@ RB
 	mesh robots/bob/meshes/rLowerArm.obj
 	meshTransformation 1 0 0 0 	0.16875 -0.16875 0
 	mass	0.8009033203125					
-	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0	
+	moi	0.00131984800100327	0.000950290560722351	0.00131984800100327	0	0	0
+	endEffector 0 -0.16875 0 0 0.85
 /End_RB
 
 RB
@@ -241,6 +245,7 @@ RB
 	collisionSphere 0 -0.03 0 0.02	
 	collisionSphere 0 0.03 0 0.02
 
+    endEffector 0 -0.003 0 0 0.85
 /End_RB
 
 
@@ -275,7 +280,7 @@ RB
 	mass	3.20361328125					
 	moi	0.0559615552425385	0.0038011622428894	0.0559615552425385	0	0	0
 	collisionSphere 0 -0.225 0 0.03
-    endEffector 0 -0.225 0 0.03
+	endEffector 0 -0.265 -0.04 0.03 0.05625
 
 /End_RB
 
@@ -298,7 +303,7 @@ RB
 	collisionSphere 0.03 -0.02 0.07 0.01
 	collisionSphere -0.03 -0.02 0.07 0.01
 
-	endEffector 0 -0.02 0.0825 0.001
+	endEffector 0 -0.02 0.0825 0.001 0.0
 
 /End_RB
 
@@ -312,7 +317,6 @@ RB
 	collisionSphere 0.03 0 0.015 0.01
 	collisionSphere -0.03 0 0.015 0.01
 
-	endEffector -0.03 0 0.015 0.01
 
 /End_RB
 
@@ -350,7 +354,7 @@ RB
 	mass	3.20361328125					
 	moi	0.0559615552425385	0.0038011622428894	0.0559615552425385	0	0	0	
 	collisionSphere 0 -0.225 0 0.03
-	endEffector 0 -0.225 0 0.03
+	endEffector 0 -0.265 -0.04 0.03 0.05625
 /End_RB
 
 RB
@@ -373,7 +377,7 @@ RB
 	collisionSphere 0.03 -0.02 0.07 0.01
 	collisionSphere -0.03 -0.02 0.07 0.01
 
-    endEffector 0 -0.02 0.0825 0.001
+    endEffector 0 -0.02 0.0825 0.001 0.0
 /End_RB
 
 RB
@@ -385,7 +389,6 @@ RB
 
 	collisionSphere 0.03 0 0.015 0.01
 	collisionSphere -0.03 0 0.015 0.01
-    endEffector -0.03 0 0.015 0.01
 
 /End_RB
 
@@ -552,7 +555,7 @@ RBJoint
 	jointCPos 0 0 0
 	jointPPos 0 0 0
 	jointLimits -0.3 1.2
-	defaultAngle 0.13
+	defaultAngle 0.2
 /End_Joint
 
 RBJoint
@@ -562,7 +565,7 @@ RBJoint
 	child lUpperArm
 	jointCPos 0 0.16875 0
 	jointPPos 0 0 0
-	jointLimits -0.75 1.0
+	jointLimits -0.5 0.75
 	defaultAngle -0.5
 /End_Joint
 
@@ -649,7 +652,7 @@ RBJoint
 	jointCPos 0 0 0
 	jointPPos 0 0 0
 	jointLimits -1.2 0.3
-	defaultAngle -0.13
+	defaultAngle -0.2
 /End_Joint
 
 RBJoint
@@ -714,7 +717,8 @@ RBJoint
 	child lUpperLeg_tmp1
 	jointCPos 0 0 0
 	jointPPos 0.1125 0 0
-	jointLimits -1.2 1.2	
+	jointLimits -1.2 1.2
+	defaultAngle 0
 /End_Joint
 
 RBJoint
@@ -735,7 +739,7 @@ RBJoint
 	child lUpperLeg
 	jointCPos 0 0.225 0
 	jointPPos 0 0 0
-	jointLimits -0.75 0.75
+	jointLimits -0.1 0.1
 	defaultAngle -0.0
 /End_Joint
 
@@ -768,7 +772,7 @@ RBJoint
 	child lFoot
 	jointCPos 0 0.028125 -0.03
 	jointPPos 0 0 0
-	jointLimits -0.5 0.5
+	jointLimits -0.1 0.1
 	defaultAngle 0.0
 /End_Joint
 
@@ -812,7 +816,7 @@ RBJoint
 	child rUpperLeg
 	jointCPos 0 0.225 0
 	jointPPos 0 0 0
-	jointLimits -0.75 0.75
+	jointLimits -0.1 0.1
 	defaultAngle -0.0
 /End_Joint
 

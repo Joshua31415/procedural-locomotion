@@ -204,6 +204,7 @@ void Model::loadObjModel(const std::string &path) {
 
         meshes.push_back(Mesh(vertices, indices, textures, material));
     }
+
 }
 
 void Model::loadStlModel(const std::string &path) {
