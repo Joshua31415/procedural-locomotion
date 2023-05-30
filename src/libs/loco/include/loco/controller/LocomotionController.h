@@ -22,7 +22,7 @@ public:
     std::shared_ptr<IK_Solver> ikSolver = nullptr;
 
     double t;
-    
+
     const double cycleLength;
     const double stanceStart;
     const double swingStart;

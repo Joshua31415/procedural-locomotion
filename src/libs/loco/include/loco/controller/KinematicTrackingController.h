@@ -115,8 +115,7 @@ public:
     }
 
 
-    void computeAndApplyControlSignals(double deltaT) override {
-        double dt = deltaT;
+    void computeAndApplyControlSignals(double dt) override {
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         double cyclePercent = getCyclePercent(0, planner->getSimTime() + dt);
         P3D targetPos = planner->getTargetTrunkPositionAtTime(planner->getSimTime() + dt, cyclePercent);
@@ -166,9 +165,9 @@ public:
                 initializeSwingPhase(i);
             }
             if (nextPhase == Phase::Swing) {
-                heelTargets[i] = computeHeelTargetSwing(i);
+                heelTargets[i] = computeHeelTargetSwing(i, dt);
             } else {
-                toeTargets[i] = computeToeTarget(i, nextPhase);
+                toeTargets[i] = computeToeTarget(i, nextPhase, dt);
                 heelTargets[i] = computeHeelTarget(i, nextPhase);
             }
             if(nextPhase == Phase::Stance && isEarlyStance(getCyclePercent(i, t+dt)))
@@ -232,8 +231,6 @@ public:
         auto heading = robot->getHeading();
 
         const double stepLength = velocity.norm() * cycleLength;
-        double cyclePercent = getCyclePercent(i, t);
-
 
         heelStarts[i] = heel->getEEWorldPos();
 
@@ -267,9 +264,6 @@ public:
         heelEnds[i] = getP3D(p3);
 
         V3D p0 = V3D(heelStarts[i]);
-//        V3D p3 = V3D(heelEnds[i]);
-//        V3D p1 = lerp(p0, p3, 0.25);
-//        V3D p2 = lerp(p1, p3, 0.75);
         p1[1] += 0.07;
         p2[1] += 0.03;
 
@@ -280,13 +274,13 @@ public:
         swingTrajectories[i].addKnot(1.0, p3);
     }
 
-    P3D computeHeelTargetSwing(int i) {
-        double cyclePercent = getCyclePercent(i, t);
-        // return lerp(heelStarts[i], heelEnds[i], remap(cyclePercent, swingStart, heelStrikeStart));
+    P3D computeHeelTargetSwing(int i, double dt) {
+        double cyclePercent = getCyclePercent(i, t+dt);
+
         return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
     }
 
-    P3D computeToeTarget(int i, Phase nextPhase) {
+    P3D computeToeTarget(int i, Phase nextPhase, double dt) {
         auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
 
@@ -303,7 +297,7 @@ public:
         break;case Phase::HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
-            double cyclePercent = getCyclePercent(i, t);
+            double cyclePercent = getCyclePercent(i, t+dt);
             return lerp(pInitial, toeStrikeTarget[i], remap(cyclePercent, heelStrikeStart, 1.0));
         }
     }
@@ -313,20 +307,8 @@ public:
         if (nextPhase == Phase::Stance) {
             return P3D(0, 0, 0);
         } else if (nextPhase == Phase::Swing) {
-            if (!heelStartSet[i]) {
-                // not sure if this should interpolate between the current position and the target 
-                // or the start position of the swing phase and the target
-                P3D pStart = heel->getEEWorldPos();
-                heelStarts[i] = pStart;
-                heelStartSet[i] = true; 
-            }
-            P3D pEnd = heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
-                       + getP3D(robot->getHeading() * V3D(+ 0.05 * robot->getForward()));  // offset in forward direction
-
-
-            pEnd[1] = heelHeight + gui::SimpleGroundModel::getHeight(pEnd);
-
-            return lerp(heelStarts[i], pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
+            //Gets handled differently
+            assert(false && "Swing phase should be handled separately");
         } else if (nextPhase == Phase::HeelStrike) {
 
             P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
