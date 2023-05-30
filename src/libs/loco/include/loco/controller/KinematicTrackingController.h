@@ -129,7 +129,7 @@ public:
             Phase currentPhase = getPhase(i, t);
 
             switch(currentPhase) {
-            break; case Phase::Stance:
+            break; case Stance:
                 makeToesParallelToGround(i);
                 setToesToFloor(i, targetPos);
                 if(isEarlyStance(getCyclePercent(i, t))){
@@ -137,12 +137,12 @@ public:
                     setHeelTarget(i, heelTargets[i], 0.1);
                 }
                 setToeTarget(i, toeTargets[i]);
-            break; case Phase::Swing:
+            break; case Swing:
                 setHipAngleToTangent(i);
                 moveToesBackToDefault(i);
                 setHeelTarget(i, heelTargets[i]);
-            break; case Phase::HeelStrike:
-                setToeTarget(i, toeTargets[i]);
+            break; case HeelStrike:
+                setToeTarget(i, toeTargets[i], 0.1);
                 setHeelTarget(i, heelTargets[i]);
             }
             setArmAngles(i); 
@@ -151,26 +151,20 @@ public:
         // setPelvisAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
-        for (int i : {0, 1}) {
-            Phase currentPhase = getPhase(i, t);
-            if (currentPhase == Phase::HeelStrike) {
-                setAnkleAngleDuringHeelStrike(i);
-            }
-        }
         // preparation for the next phase depending on the transition
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             Phase nextPhase = getPhase(i, t + dt);
-            if (currentPhase == Phase::Stance && nextPhase == Phase::Swing) {
+            if (currentPhase == Stance && nextPhase == Swing) {
                 initializeSwingPhase(i);
             }
-            if (nextPhase == Phase::Swing) {
+            if (nextPhase == Swing) {
                 heelTargets[i] = computeHeelTargetSwing(i, dt);
             } else {
                 toeTargets[i] = computeToeTarget(i, nextPhase, dt);
                 heelTargets[i] = computeHeelTarget(i, nextPhase);
             }
-            if(nextPhase == Phase::Stance && isEarlyStance(getCyclePercent(i, t+dt)))
+            if(nextPhase == Stance && isEarlyStance(getCyclePercent(i, t+dt)))
                 computeEarlyStanceHeelStrike(i);
         }
 
@@ -285,16 +279,16 @@ public:
         auto heel = robot->getLimb(i + 2);
 
         switch(nextPhase){
-        break;case Phase::Stance:{
+        break;case Stance:{
             P3D pInitial = toes->getEEWorldPos();
             pInitial[1] = toeHeight + gui::SimpleGroundModel::getHeight(pInitial);
             return pInitial;
         }
 
-        break;case Phase::Swing:
+        break;case Swing:
             return P3D(0, 0, 0);
 
-        break;case Phase::HeelStrike:
+        break;case HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             double cyclePercent = getCyclePercent(i, t+dt);
@@ -304,19 +298,22 @@ public:
 
     P3D computeHeelTarget(int i, Phase nextPhase) {
         auto heel = robot->getLimb(i + 2);
-        if (nextPhase == Phase::Stance) {
+        if (nextPhase == Stance) {
             return P3D(0, 0, 0);
-        } else if (nextPhase == Phase::Swing) {
+        } else if (nextPhase == Swing) {
             //Gets handled differently
             assert(false && "Swing phase should be handled separately");
-        } else if (nextPhase == Phase::HeelStrike) {
+        } else if (nextPhase == HeelStrike) {
 
-            P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
+
+            P3D pHeel = getP3D(swingTrajectories[i].evaluate_catmull_rom(1.0));
+
+
+            P3D pFinal = pHeel + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
             pFinal[1] = toeHeight + gui::SimpleGroundModel::getHeight(pFinal);
 
             toeStrikeTarget[i] = pFinal;
 
-            P3D pHeel = heel->getEEWorldPos();
             pHeel[1] = heelHeight + gui::SimpleGroundModel::getHeight(pHeel);
             heelStartSet[i] = false;
             return pHeel;
