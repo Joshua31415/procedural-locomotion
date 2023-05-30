@@ -96,7 +96,7 @@ public:
 
     virtual P3D getTargetTrunkPositionAtTime(double t, double cyclePercent) {
         return P3D() + bFrameMotionPlan.bFramePosTrajectory.evaluate_linear(t) 
-            + RBGlobals::worldUp * 0.01 * sin(4 * M_PI * cyclePercent) - P3D(0, 0.005, 0);
+            + RBGlobals::worldUp * 0.002 * sin(4 * M_PI * cyclePercent) - P3D(0, 0.005, 0);
     }
 
     virtual P3D getTargetTrunkPositionAtTime(double t) {
