@@ -183,14 +183,14 @@ public:
         }
     }
 
-    void setHeelTarget(int i, P3D pTarget) {
+    void setHeelTarget(int i, P3D pTarget, double weight=1) {
         auto heel = robot->getLimb(i + 2);
-        ikSolver->addEndEffectorTarget(heel->eeRB, heel->ee->endEffectorOffset, pTarget);
+        ikSolver->addEndEffectorTarget(heel->eeRB, heel->ee->endEffectorOffset, pTarget, weight);
     }
 
-    void setToeTarget(int i, P3D pTarget) {
+    void setToeTarget(int i, P3D pTarget, double weight=1) {
         auto foot = robot->getLimb(i);
-        ikSolver->addEndEffectorTarget(foot->eeRB, foot->ee->endEffectorOffset, pTarget);
+        ikSolver->addEndEffectorTarget(foot->eeRB, foot->ee->endEffectorOffset, pTarget, weight);
     }
 
     void setSpineAngle() {

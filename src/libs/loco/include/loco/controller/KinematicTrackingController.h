@@ -135,7 +135,7 @@ public:
                 setToesToFloor(i, targetPos);
                 if(isEarlyStance(getCyclePercent(i, t))){
                     setHeelToFloor(i, targetPos);
-                    setHeelTarget(i, heelTargets[i]);
+                    setHeelTarget(i, heelTargets[i], 0.1);
                 }
                 setToeTarget(i, toeTargets[i]);
             break; case Phase::Swing:
@@ -439,7 +439,7 @@ public:
                     drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
             }
         }
-
+        
         for(const auto&[p, r, c] : drawList)
             drawSphere(p, r, *shader, c);
 

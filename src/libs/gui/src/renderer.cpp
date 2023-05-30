@@ -190,7 +190,7 @@ Model getGroundModel(double s) {
 
 constexpr double planeSize = 100;
 
-bool SimpleGroundModel::isFlat = false;
+bool SimpleGroundModel::isFlat = true;
 
 /*
 Model SimpleGroundModel::groundFlat = [](double dim){

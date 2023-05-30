@@ -9,10 +9,19 @@
 
 namespace crl::loco {
 
+
 struct IK_EndEffectorTargets {
     std::shared_ptr<RB> rb = nullptr;
     P3D p;       // local coordinates of end effector in rb's frame
     P3D target;  // target position in world frame
+    double weight; // Weighting of error
+
+    IK_EndEffectorTargets() = delete;
+    IK_EndEffectorTargets(std::shared_ptr<RB> rb, P3D p, P3D target, double weight)
+        : rb(rb), p(p), target(target), weight(weight){
+
+    }
+//    double weight;
 };
 
 class IK_Solver {
@@ -33,11 +42,8 @@ public:
      * add IK end effector target to solver. Specify the end effector point p, which 
      * is specified in the local coordinates of rb and its target expressed in world frame.
      */
-    void addEndEffectorTarget(const std::shared_ptr<RB> &rb, P3D p, P3D target) {
-        endEffectorTargets.push_back(IK_EndEffectorTargets());
-        endEffectorTargets.back().rb = rb;
-        endEffectorTargets.back().p = p;
-        endEffectorTargets.back().target = target;
+    void addEndEffectorTarget(const std::shared_ptr<RB> &rb, P3D p, P3D target, double weight=1) {
+        endEffectorTargets.emplace_back(rb, p, target, weight);
     }
 
     void enforceJointLimits(dVector& q) {
@@ -61,7 +67,7 @@ public:
             uint i = 0;
             for (auto& t : endEffectorTargets) {
                 P3D pWorld = gcrr.getWorldCoordinates(t.p, t.rb);
-                V3D error = (V3D(t.target) - V3D(pWorld));
+                V3D error = (V3D(t.target) - V3D(pWorld)) * t.weight;
 
                 residual[0 + 3 * i] = error(0);
                 residual[1 + 3 * i] = error(1);
@@ -112,7 +118,7 @@ public:
 
             ceres::Solver::Summary summary;
             ceres::Solve(options, &problem, &summary);
-            //std::cout << summary.BriefReport() << "\n";
+//            std::cout << summary.BriefReport() << "\n";
 
             for (int i = 0; i < nJoints; ++i) {
                 qOld(6 + i) = qNew(i);
