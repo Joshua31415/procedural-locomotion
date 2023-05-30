@@ -153,6 +153,10 @@ public:
     void drawImPlot() override {
         crl::gui::ShadowApplication::drawImPlot();
 
+        if(ImGui::BeginMenu("Delta time")){
+            ImGui::SliderDouble("Delta time", &dt, 1.0/1080, 1.0/30);
+        }
+
         const double gaitCycleLength = controller_->cycleLength;
 
         static double tPrev = controller_->t;

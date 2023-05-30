@@ -404,29 +404,29 @@ public:
 
     void drawDebugInfo(gui::Shader *shader) override {
 
-        constexpr size_t numTrajectorySamples = 100;
-
-
-        for(auto leg : {0, 1}){
-            switch(getPhase(leg ,t)){
-                break;case Stance:
-                    drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
-                    if(isEarlyStance(getCyclePercent(leg, t)))
-                        drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
-                break;case Swing:
-                    for(int i = 0; i < numTrajectorySamples; ++i){
-                        drawSphere(getP3D(swingTrajectories[leg].evaluate_catmull_rom(i*1.0/numTrajectorySamples)), 0.002, *shader, {0, 1, 0});
-                    }
-                    drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
-                break;case HeelStrike:
-                    drawSphere(toeStrikeTarget[leg], 0.02, *shader, {0, 1, 0});
-                    drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
-                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
-            }
-        }
-        
-        for(const auto&[p, r, c] : drawList)
-            drawSphere(p, r, *shader, c);
+//        constexpr size_t numTrajectorySamples = 100;
+//
+//
+//        for(auto leg : {0, 1}){
+//            switch(getPhase(leg ,t)){
+//                break;case Stance:
+//                    drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
+//                    if(isEarlyStance(getCyclePercent(leg, t)))
+//                        drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
+//                break;case Swing:
+//                    for(int i = 0; i < numTrajectorySamples; ++i){
+//                        drawSphere(getP3D(swingTrajectories[leg].evaluate_catmull_rom(i*1.0/numTrajectorySamples)), 0.002, *shader, {0, 1, 0});
+//                    }
+//                    drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
+//                break;case HeelStrike:
+//                    drawSphere(toeStrikeTarget[leg], 0.02, *shader, {0, 1, 0});
+//                    drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
+//                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
+//            }
+//        }
+//
+//        for(const auto&[p, r, c] : drawList)
+//            drawSphere(p, r, *shader, c);
 
         drawEnvMap(*shader);
         drawList.clear();
