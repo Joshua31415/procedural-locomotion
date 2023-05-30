@@ -132,9 +132,9 @@ public:
             break; case Stance:
                 makeToesParallelToGround(i);
                 setToesToFloor(i, targetPos);
-                if(isEarlyStance(getCyclePercent(i, t))){
+                if(isEarlyStance(cyclePercent)){
                     setHeelToFloor(i, targetPos);
-                    setHeelTarget(i, heelTargets[i], 0.1);
+                    setHeelTarget(i, heelTargets[i], 1 - remap(cyclePercent, stanceStart, swingStart));
                 }
                 setToeTarget(i, toeTargets[i]);
             break; case Swing:
@@ -240,7 +240,7 @@ public:
             );
 
         if((robot->getHeading() * robot->getForward()).dot(velocity) >= 0){
-            heelEnds[i] = heelEnds[i] + velocity.normalized() * stepLength/3; //velocity dependent offset
+            heelEnds[i] = heelEnds[i] + velocity.normalized() * stepLength*0.3; //velocity dependent offset
         }else{
             assert(false && "Walking backwards is not supported yet.");
         }
