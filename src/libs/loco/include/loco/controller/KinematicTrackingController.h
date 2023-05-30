@@ -151,6 +151,12 @@ public:
         // setPelvisAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
+        for (int i : {0, 1}) {
+            Phase currentPhase = getPhase(i, t);
+            if (currentPhase == Phase::HeelStrike) {
+                setAnkleAngleDuringHeelStrike(i);
+            }
+        }
         // preparation for the next phase depending on the transition
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);

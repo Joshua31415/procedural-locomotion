@@ -226,7 +226,7 @@ public:
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
-        for (int i = 0; i < 2; ++i) {
+        for (auto i : {0, 1}) {
             angle += q(footJointIndices[footIdx][i] + 6);
         }
         double cyclePercent = getCyclePercent(footIdx, t);
