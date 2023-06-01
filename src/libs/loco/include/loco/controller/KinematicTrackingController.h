@@ -129,20 +129,20 @@ public:
             Phase currentPhase = getPhase(i, t);
 
             switch(currentPhase) {
-            break; case Phase::Stance:
+            break; case Stance:
                 makeToesParallelToGround(i);
                 setToesToFloor(i, targetPos);
-                if(isEarlyStance(getCyclePercent(i, t))){
+                if(isEarlyStance(cyclePercent)){
                     setHeelToFloor(i, targetPos);
-                    setHeelTarget(i, heelTargets[i], 0.1);
+                    setHeelTarget(i, heelTargets[i], 1 - remap(cyclePercent, stanceStart, swingStart));
                 }
                 setToeTarget(i, toeTargets[i]);
-            break; case Phase::Swing:
+            break; case Swing:
                 setHipAngleToTangent(i);
                 moveToesBackToDefault(i);
                 setHeelTarget(i, heelTargets[i]);
-            break; case Phase::HeelStrike:
-                setToeTarget(i, toeTargets[i]);
+            break; case HeelStrike:
+                setToeTarget(i, toeTargets[i], 0.1);
                 setHeelTarget(i, heelTargets[i]);
             }
             setArmAngles(i); 
@@ -161,16 +161,16 @@ public:
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             Phase nextPhase = getPhase(i, t + dt);
-            if (currentPhase == Phase::Stance && nextPhase == Phase::Swing) {
+            if (currentPhase == Stance && nextPhase == Swing) {
                 initializeSwingPhase(i);
             }
-            if (nextPhase == Phase::Swing) {
+            if (nextPhase == Swing) {
                 heelTargets[i] = computeHeelTargetSwing(i, dt);
             } else {
                 toeTargets[i] = computeToeTarget(i, nextPhase, dt);
                 heelTargets[i] = computeHeelTarget(i, nextPhase);
             }
-            if(nextPhase == Phase::Stance && isEarlyStance(getCyclePercent(i, t+dt)))
+            if(nextPhase == Stance && isEarlyStance(getCyclePercent(i, t+dt)))
                 computeEarlyStanceHeelStrike(i);
         }
 
@@ -240,7 +240,7 @@ public:
             );
 
         if((robot->getHeading() * robot->getForward()).dot(velocity) >= 0){
-            heelEnds[i] = heelEnds[i] + velocity.normalized() * stepLength/3; //velocity dependent offset
+            heelEnds[i] = heelEnds[i] + velocity.normalized() * stepLength*0.3; //velocity dependent offset
         }else{
             assert(false && "Walking backwards is not supported yet.");
         }
@@ -285,16 +285,16 @@ public:
         auto heel = robot->getLimb(i + 2);
 
         switch(nextPhase){
-        break;case Phase::Stance:{
+        break;case Stance:{
             P3D pInitial = toes->getEEWorldPos();
             pInitial[1] = toeHeight + gui::SimpleGroundModel::getHeight(pInitial);
             return pInitial;
         }
 
-        break;case Phase::Swing:
+        break;case Swing:
             return P3D(0, 0, 0);
 
-        break;case Phase::HeelStrike:
+        break;case HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             double cyclePercent = getCyclePercent(i, t+dt);
@@ -304,19 +304,22 @@ public:
 
     P3D computeHeelTarget(int i, Phase nextPhase) {
         auto heel = robot->getLimb(i + 2);
-        if (nextPhase == Phase::Stance) {
+        if (nextPhase == Stance) {
             return P3D(0, 0, 0);
-        } else if (nextPhase == Phase::Swing) {
+        } else if (nextPhase == Swing) {
             //Gets handled differently
             assert(false && "Swing phase should be handled separately");
-        } else if (nextPhase == Phase::HeelStrike) {
+        } else if (nextPhase == HeelStrike) {
 
-            P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
+
+            P3D pHeel = getP3D(swingTrajectories[i].evaluate_catmull_rom(1.0));
+
+
+            P3D pFinal = pHeel + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
             pFinal[1] = toeHeight + gui::SimpleGroundModel::getHeight(pFinal);
 
             toeStrikeTarget[i] = pFinal;
 
-            P3D pHeel = heel->getEEWorldPos();
             pHeel[1] = heelHeight + gui::SimpleGroundModel::getHeight(pHeel);
             heelStartSet[i] = false;
             return pHeel;
@@ -401,29 +404,29 @@ public:
 
     void drawDebugInfo(gui::Shader *shader) override {
 
-        constexpr size_t numTrajectorySamples = 100;
-
-
-        for(auto leg : {0, 1}){
-            switch(getPhase(leg ,t)){
-                break;case Stance:
-                    drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
-                    if(isEarlyStance(getCyclePercent(leg, t)))
-                        drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
-                break;case Swing:
-                    for(int i = 0; i < numTrajectorySamples; ++i){
-                        drawSphere(getP3D(swingTrajectories[leg].evaluate_catmull_rom(i*1.0/numTrajectorySamples)), 0.002, *shader, {0, 1, 0});
-                    }
-                    drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
-                break;case HeelStrike:
-                    drawSphere(toeStrikeTarget[leg], 0.02, *shader, {0, 1, 0});
-                    drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
-                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
-            }
-        }
-        
-        for(const auto&[p, r, c] : drawList)
-            drawSphere(p, r, *shader, c);
+//        constexpr size_t numTrajectorySamples = 100;
+//
+//
+//        for(auto leg : {0, 1}){
+//            switch(getPhase(leg ,t)){
+//                break;case Stance:
+//                    drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
+//                    if(isEarlyStance(getCyclePercent(leg, t)))
+//                        drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
+//                break;case Swing:
+//                    for(int i = 0; i < numTrajectorySamples; ++i){
+//                        drawSphere(getP3D(swingTrajectories[leg].evaluate_catmull_rom(i*1.0/numTrajectorySamples)), 0.002, *shader, {0, 1, 0});
+//                    }
+//                    drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
+//                break;case HeelStrike:
+//                    drawSphere(toeStrikeTarget[leg], 0.02, *shader, {0, 1, 0});
+//                    drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
+//                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
+//            }
+//        }
+//
+//        for(const auto&[p, r, c] : drawList)
+//            drawSphere(p, r, *shader, c);
 
         drawEnvMap(*shader);
         drawList.clear();
