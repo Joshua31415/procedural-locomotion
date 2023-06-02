@@ -353,7 +353,7 @@ public:
         break;case Phase::HeelStrike:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
-            P3D pFinal = heel->getEEWorldPos() + defaultHeelToToe[i];
+            P3D pFinal = heel->getEEWorldPos() + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
             pFinal[1] = toeHeight;
             // pFinal[1] += gui::SimpleGroundModel::getHeight(pFinal);
             double cyclePercent = getCyclePercent(i, t);
@@ -515,7 +515,7 @@ public:
         heelTargets[i][1] = heelHeight; //+gui::SimpleGroundModel::getHeight(heelTargets[i]);
 
         
-        toeTargets[i] = heelTargets[i] + defaultHeelToToe[i];
+//        toeTargets[i] = heelTargets[i] + defaultHeelToToe[i];
         toeTargets[i][1] = toeHeight;  //+ gui::SimpleGroundModel::getHeight(toeTargets[i]);
     }
 
