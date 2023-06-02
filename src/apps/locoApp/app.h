@@ -153,8 +153,8 @@ public:
     void drawImPlot() override {
         crl::gui::ShadowApplication::drawImPlot();
 
-        ImGui::SliderDouble("Delta time", &dt, 1.0/1080, 1.0/30, "", ImGuiSliderFlags_AlwaysClamp);
-        ImGui::SliderInt("Target Framerate", &targetFramerate, 1, 1000, "", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::SliderDouble("Delta time", &dt, 1.0/1080, 1.0/30, "%f", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::SliderInt("Target Framerate", &targetFramerate, 1, 240, "%d", ImGuiSliderFlags_AlwaysClamp);
 
         const double gaitCycleLength = controller_->cycleLength;
 
