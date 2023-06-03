@@ -23,24 +23,14 @@ namespace crl::loco {
  */
 class KinematicTrackingController : public LocomotionController {
 public:
+
+    Trajectory1D elbowJointTrajectory{};
+
+    std::array<P3D, 2> toeStrikeTarget{};
+
     const double elbowMin;
     const double elbowMax;
     const double elbowSwingOffset = 0.03;
-
-    //Vector of point/radius/color
-    std::vector<std::tuple<P3D, double, V3D>> drawList{};
-
-    std::array<Trajectory3D, 2> swingTrajectories;
-
-    std::array<P3D, 2> toeTargets;
-    std::array<P3D, 2> toeStrikeTarget;
-    std::array<P3D, 2> heelTargets;
-    std::array<P3D, 2> heelStarts;
-    std::array<P3D, 2> heelEnds;
-
-
-    Trajectory1D shoulderJointTrajectory;
-    Trajectory1D elbowJointTrajectory;
 
 public:
     /**

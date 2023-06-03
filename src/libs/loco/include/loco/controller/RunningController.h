@@ -23,26 +23,18 @@ namespace crl::loco {
  */
 class RunningController : public LocomotionController {
 public:
-    dVector qDefault;
 
-    std::array<P3D, 2> stanceTargets;
-    std::array<P3D, 2> swingTargets;
-    std::array<P3D, 2> heelStrikeTargets;
-    std::array<Trajectory3D, 2> swingTrajectories;
-    std::array<P3D, 2> toeTargets;
-    std::array<P3D, 2> heelTargets;
-    std::array<P3D, 2> heelStarts;
-    std::array<P3D, 2> heelEnds;
-    std::array<std::array<double, 2>, 2> toeLimits;
-    std::array<V3D, 2> defaultHeelToToe;
+    Trajectory1D elbowJointOffsetTrajectory{};
+
+
+    std::array<std::array<double, 2>, 2> toeLimits{};
+    std::array<V3D, 2> defaultHeelToToe{};
  
-    Trajectory1D shoulderJointTrajectory;
-    Trajectory1D elbowJointOffsetTrajectory;
-    Trajectory1D shoulderTorsionOffsetTrajectory;
-    std::array<double, 2> defaultShoulderTorsions;
+    Trajectory1D shoulderTorsionOffsetTrajectory{};
+    std::array<double, 2> defaultShoulderTorsions{};
 
-    int its = 0;
-    Trajectory1D verticalOffsetTraj;
+    Trajectory1D verticalOffsetTraj{};
+
 public:
     /**
      * constructor
@@ -84,7 +76,6 @@ public:
         //robot->setRootState(targetPos /* + V3D(0, gui::SimpleGroundModel::getHeight(targetPos), 0)*/, targetOrientation);
         //gcrr.syncGeneralizedCoordinatesWithRobotState();
 
-        gcrr.getQ(qDefault);
         for (int i : {0, 1}) {
             auto toe = robot->getLimb(i);
             auto heel = robot->getLimb(i + 2);
@@ -102,7 +93,6 @@ public:
             P3D pToes = robot->getLimb(i)->getEEWorldPos();  // + V3D(0, gui::SimpleGroundModel::getHeight(P3D{0, 0, 0}), 0);
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();  // + V3D(0, gui::SimpleGroundModel::getHeight(P3D{0, 0, 0}), 0);
 
-            heelStrikeTargets[i] = pToes;
             heelTargets[i] = pHeel;
             heelStarts[i] = pHeel;
             heelEnds[i] = pHeel;
@@ -477,16 +467,6 @@ public:
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
-    void computeStanceTarget(int i) {
-        auto foot = robot->getLimb(i);
-        stanceTargets[i] = foot->getEEWorldPos();
-    }
-
-    void setStanceTarget(int i) {
-        auto foot = robot->getLimb(i);
-        ikSolver->addEndEffectorTarget(foot->eeRB, foot->ee->endEffectorOffset, stanceTargets[i]);
-    }
-    
     void computeSwingTrajectory(int i) {
         auto heel = robot->getLimb(i + 2);
 
@@ -498,26 +478,6 @@ public:
         swingTrajectories[i].addKnot(1, V3D(pEnd));
     }
 
-    void computeSwingTarget(int i) {
-        auto heel = robot->getLimb(i + 2);
-        P3D pStart = heel->getEEWorldPos();
-        P3D pEnd = getP3D(robot->getHeading() * V3D(heel->limbRoot->getWorldCoordinates() + heel->defaultEEOffsetWorld  // heel position in default pose
-                    + 0.05 * robot->getForward()));             // offset in heading direction
-
-
-        swingTargets[i] = lerp(pStart, pEnd, remap(getCyclePercent(i, t), swingStart, heelStrikeStart));
-    }
-
-    void lockSwingTargetForHeelStrike(int i) {
-        auto heel = robot->getLimb(i + 2);
-        P3D pHeel = heel->getEEWorldPos();
-        swingTargets[i] = pHeel;
-    }
-
-    void setSwingTarget(int i) {
-        auto heel = robot->getLimb(i + 2);
-        ikSolver->addEndEffectorTarget(heel->eeRB, heel->ee->endEffectorOffset, swingTargets[i]);
-    }
 
     void computeEarlyStanceHeelStrike(int i) {
         auto toes = robot->getLimb(i);
@@ -528,14 +488,6 @@ public:
         
 //        toeTargets[i] = heelTargets[i] + defaultHeelToToe[i];
         toeTargets[i][1] = toeHeight;  //+ gui::SimpleGroundModel::getHeight(toeTargets[i]);
-    }
-
-    void setHeelStrikeTarget(int i) {
-        auto toes = robot->getLimb(i);
-        double cyclePercent = getCyclePercent(i, t);
-        // maybe fix the starting position?
-        P3D pTarget = lerp(toes->getEEWorldPos(), heelStrikeTargets[i], remap(cyclePercent, heelStrikeStart, 1.0));
-        ikSolver->addEndEffectorTarget(toes->eeRB, toes->ee->endEffectorOffset, pTarget);
     }
 
     void setToesToFloor(int i) {

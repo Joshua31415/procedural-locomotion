@@ -16,37 +16,51 @@ public:
     const double pi = 3.14159265358979323846;
     const double twoPi = pi * 2.0;
 
-    std::shared_ptr<LocomotionTrajectoryPlanner> planner = nullptr;
+    std::shared_ptr<LocomotionTrajectoryPlanner> planner;
     GeneralizedCoordinatesRobotRepresentation gcrr;
     std::shared_ptr<LeggedRobot> robot;
-    std::shared_ptr<IK_Solver> ikSolver = nullptr;
+    std::shared_ptr<IK_Solver> ikSolver;
 
-    double t;
+    //Vector of point/radius/color
+    std::vector<std::tuple<P3D, double, V3D>> drawList{};
 
-    double &cycleLength;
-    double &stanceStart;
-    double &swingStart;
-    double &heelStrikeStart;
+    std::array<Trajectory3D, 2> swingTrajectories{};
 
-    enum Phase { Stance, Swing, HeelStrike };
+    std::array<P3D, 2> toeTargets{};
+    std::array<P3D, 2> heelTargets{};
+    std::array<P3D, 2> heelStarts{};
+    std::array<P3D, 2> heelEnds{};
 
-    // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
-    std::array<std::array<int, 3>, 2> armJointIndices{};
-    const double shoulderMin;
-    const double shoulderMax;
+    Trajectory1D shoulderJointTrajectory{};
 
-    const double spineAmplitude;
-    const double pelvisAmplitude_x;
-    const double pelvisAmplitude_z;
-    int spineIdx;
-    int neckIdx;
-    std::array<int, 3> pelvisIdx{};
 
-    // hip, knee, ankle1, toe, ankle2
-    std::array<std::array<int, 5>, 2> footJointIndices{};
-    double heelHeight;
-    double toeHeight;
-    double heelToeDistance;
+
+        double t;
+
+        double &cycleLength;
+        double &stanceStart;
+        double &swingStart;
+        double &heelStrikeStart;
+
+        enum Phase { Stance, Swing, HeelStrike };
+
+        // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
+        std::array<std::array<int, 3>, 2> armJointIndices{};
+        const double shoulderMin;
+        const double shoulderMax;
+
+        const double spineAmplitude;
+        const double pelvisAmplitude_x;
+        const double pelvisAmplitude_z;
+        int spineIdx;
+        int neckIdx;
+        std::array<int, 3> pelvisIdx{};
+
+        // hip, knee, ankle1, toe, ankle2
+        std::array<std::array<int, 5>, 2> footJointIndices{};
+        double heelHeight;
+        double toeHeight;
+        double heelToeDistance;
 public:
     LocomotionController(const std::shared_ptr<LocomotionTrajectoryPlanner>& planner, double &cycleLength, double &stanceStart, double &swingStart,
                          double &heelStrikeStart, double shoulderMax, double shoulderMin, double spinneAmplitudeDegree, double pelvisAmplitudeDegree_x,
