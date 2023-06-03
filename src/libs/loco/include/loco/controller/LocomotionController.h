@@ -121,7 +121,10 @@ public:
     /**
      * Generate motion trajectory with timestep size dt.
      */
-    virtual void generateMotionTrajectories(double dt = 1.0 / 30.0) = 0;
+    void generateMotionTrajectories(double dt = 1.0 / 30) {
+        planner->planGenerationTime = planner->simTime;
+        planner->generateTrajectoriesFromCurrentState(dt);
+    }
 
     /**
      * Compute and apply control signal with timestep size dt.
@@ -131,7 +134,9 @@ public:
     /**
      * Call this function after applying control signal.
      */
-    virtual void advanceInTime(double dt) = 0;
+    void advanceInTime(double deltaT) {
+        planner->advanceInTime(deltaT);
+    }
 
     /**
      * Draw control options to ImGui.
@@ -151,6 +156,18 @@ public:
      * e.g. joint torque etc.
      */
     virtual void plotDebugInfo() = 0;
+
+    /**
+     * @brief Computes catmull rom interpolation of swing trajectory of heel
+     * @param i leg index
+     * @param dt delta time of simulation
+     * @return interpolated heel position at time t+dt
+     */
+    [[nodiscard]] P3D computeHeelTargetSwing(int i, double dt) {
+        double cyclePercent = getCyclePercent(i, t+dt);
+
+        return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
+    }
 
 
     [[nodiscard]] double toRad(double degree) const {

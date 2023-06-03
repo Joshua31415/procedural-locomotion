@@ -89,12 +89,6 @@ public:
      */
     ~KinematicTrackingController() override = default;
 
-    void generateMotionTrajectories(double dt = 1.0 / 30) override {
-        planner->planGenerationTime = planner->simTime;
-        planner->generateTrajectoriesFromCurrentState(dt);
-    }
-
-
     void computeAndApplyControlSignals(double dt) override {
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         double cyclePercent = getCyclePercent(0, planner->getSimTime() + dt);
@@ -255,11 +249,7 @@ public:
         swingTrajectories[i].addKnot(1.0, p3);
     }
 
-    [[nodiscard]] P3D computeHeelTargetSwing(int i, double dt) {
-        double cyclePercent = getCyclePercent(i, t+dt);
 
-        return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
-    }
 
     [[nodiscard]] P3D computeToeTarget(int i, Phase nextPhase, double dt) {
         auto toes = robot->getLimb(i);
@@ -285,16 +275,8 @@ public:
 
     [[nodiscard]] P3D computeHeelTarget(int i, Phase nextPhase) {
         auto heel = robot->getLimb(i + 2);
-        if (nextPhase == Stance) {
-            return P3D(0, 0, 0);
-        } else if (nextPhase == Swing) {
-            //Gets handled differently
-            assert(false && "Swing phase should be handled separately");
-        } else if (nextPhase == HeelStrike) {
-
-
+        if (nextPhase == HeelStrike) {
             P3D pHeel = getP3D(swingTrajectories[i].evaluate_catmull_rom(1.0));
-
 
             P3D pFinal = pHeel + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
             pFinal[1] = toeHeight + gui::SimpleGroundModel::getHeight(pFinal);
@@ -304,13 +286,14 @@ public:
             pHeel[1] = heelHeight + gui::SimpleGroundModel::getHeight(pHeel);
             return pHeel;
         }
+        return P3D(0, 0, 0);
     }
 
     void makeToesParallelToGround(int footIdx) {
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
-        for (int i = 0; i < 3; ++i) {
+        for (int i : {0, 1, 2}) {
             angle += q(footJointIndices[footIdx][i] + 6);
         }
         q(6 + footJointIndices[footIdx][3]) = -angle;
@@ -375,11 +358,6 @@ public:
 
     void setHeelToFloor(int i, const P3D& position) {
         heelTargets[i][1] = heelHeight + gui::SimpleGroundModel::getHeight(position);
-    }
-
-    void advanceInTime(double deltaT) override {
-        double dt = deltaT;
-        planner->advanceInTime(dt);
     }
 
     void drawDebugInfo(gui::Shader *shader) override {

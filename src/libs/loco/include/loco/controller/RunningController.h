@@ -135,11 +135,6 @@ public:
      */
     ~RunningController() override = default;
 
-    void generateMotionTrajectories(double dt = 1.0 / 30) override {
-        planner->planGenerationTime = planner->simTime;
-        planner->generateTrajectoriesFromCurrentState(dt);
-    }
-
     void computeAndApplyControlSignals(double dt) override {
         // set base pose. in this assignment, we just assume the base perfectly
         // follow target base trajectory.
@@ -229,7 +224,7 @@ public:
             }
             if (nextPhase == Phase::Swing) {
 
-                heelTargets[i] = computeHeelTargetSwing(i);
+                heelTargets[i] = computeHeelTargetSwing(i, dt);
             } else {
                 toeTargets[i] = computeToeTarget(i, nextPhase);
                 heelTargets[i] = computeHeelTarget(i, nextPhase);
@@ -335,11 +330,6 @@ public:
         swingTrajectories[i].addKnot(1.0, p3);
     }
 
-    P3D computeHeelTargetSwing(int i) {
-        double cyclePercent = getCyclePercent(i, t);
-        // return lerp(heelStarts[i], heelEnds[i], remap(cyclePercent, swingStart, heelStrikeStart));
-        return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
-    }
 
     P3D computeToeTarget(int i, Phase nextPhase) {
         auto toes = robot->getLimb(i);
@@ -379,7 +369,7 @@ public:
         dVector q;
         gcrr.getQ(q);
         double angle = 0.0;
-        for (int i = 0; i < 2; ++i) {
+        for (int i : {0, 1}) {
             angle += q(6 + footJointIndices[footIdx][i]);
         }
         q(6 + footJointIndices[footIdx][2]) = -angle;
@@ -496,10 +486,6 @@ public:
 
     void setHeelToFloor(int i) {
         heelTargets[i][1] = heelHeight;
-    }
-
-    void advanceInTime(double dt) override {
-        planner->advanceInTime(dt);
     }
 
     void drawDebugInfo(gui::Shader *shader) override {
