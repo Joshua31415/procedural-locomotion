@@ -311,20 +311,34 @@ public:
         // heelEnds[i][1] = gui::SimpleGroundModel::getHeight(heelEnds[i]); // offset due to ground displacement
 
 
+        auto tOffset = (swingStart - stanceStart)*cycleLength;
+
+        Quaternion currentOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime());
+        Quaternion futureOrientation = planner->getTargetTrunkOrientationAtTime(planner->getSimTime() + tOffset);
+
+        V3D heelDiff = currentOrientation.inverse() * V3D(heelEnds[i] - heelStarts[i]);
+
+
         V3D p0 = V3D(heelStarts[i]);
         p0 += velocityDir * 0.05;
         p0[1] += 0.02;
-        V3D p3 = V3D(heelEnds[i]);
-        V3D p1 = lerp(p0, p3, 0.35);
-        p1[1] += 0.5;
 
-        V3D p02 = lerp(p0, p1, 0.5);
-        V3D p2 = lerp(p0, p3, 0.65);
-        // p02 += velocityDir * 0.05;
+        V3D p1 =  p0 + currentOrientation * heelDiff * 0.35;
+
+        V3D p2 = p1 + currentOrientation.slerp(0.35, futureOrientation) * heelDiff * 0.3;
+
+        V3D p3 = p2 + currentOrientation.slerp(0.65, futureOrientation) * heelDiff * 0.35;
+
+        p1[1] += 0.5;
+        V3D p02 = p0 + (p1 - p0) * 0.5;
+
         p02[1] += 0.05;
         p2[1] += 0.1;
         p2 += velocityDir * 0.3;
         // p2[2] += 0.3; // just for testing while bob is standing
+
+        heelEnds[i] = getP3D(p3);
+
         swingTrajectories[i].clear();
         swingTrajectories[i].addKnot(0.0, p0);
         swingTrajectories[i].addKnot(0.5 * 0.35, p02);
