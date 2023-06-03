@@ -23,10 +23,11 @@ public:
 
     double t;
 
-    const double cycleLength;
-    const double stanceStart;
-    const double swingStart;
-    const double heelStrikeStart;
+    double &cycleLength;
+    double &stanceStart;
+    double &swingStart;
+    double &heelStrikeStart;
+
     enum Phase { Stance, Swing, HeelStrike };
 
     // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
@@ -47,8 +48,8 @@ public:
     double toeHeight;
     double heelToeDistance;
 public:
-    LocomotionController(const std::shared_ptr<LocomotionTrajectoryPlanner>& planner, double cycleLength, double stanceStart, double swingStart,
-                         double heelStrikeStart, double shoulderMax, double shoulderMin, double spinneAmplitudeDegree, double pelvisAmplitudeDegree_x,
+    LocomotionController(const std::shared_ptr<LocomotionTrajectoryPlanner>& planner, double &cycleLength, double &stanceStart, double &swingStart,
+                         double &heelStrikeStart, double shoulderMax, double shoulderMin, double spinneAmplitudeDegree, double pelvisAmplitudeDegree_x,
                          double pelvisAmplitudeDegree_z)
         : planner(planner),
           gcrr(planner->robot),

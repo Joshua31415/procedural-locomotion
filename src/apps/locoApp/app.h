@@ -144,6 +144,12 @@ public:
             ImGui::Checkbox("Draw debug info", &drawDebugInfo);
         }
 
+        if (ImGui::CollapsingHeader("Gait Parameters")) {
+            ImGui::SliderDouble("Cycle Length", &modelOptions[selectedModel].cycleLength, 0.5, 1.5, "%f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderDouble("Swing Start", &modelOptions[selectedModel].swingStart, modelOptions[selectedModel].stanceStart, modelOptions[selectedModel].heelStrikeStart, "%f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderDouble("Heel Strike Start", &modelOptions[selectedModel].heelStrikeStart, modelOptions[selectedModel].swingStart, 1.0, "%f", ImGuiSliderFlags_AlwaysClamp);
+        }
+
         ImGui::End();
 
         planner_->visualizeContactSchedule();
@@ -257,7 +263,7 @@ public:
 
 private:
     void setupRobotAndController() {
-        const auto &m = modelOptions[selectedModel];
+        auto &m = modelOptions[selectedModel];
         const char *rbsFile = m.filePath.c_str();
         robot_ = std::make_shared<crl::loco::LeggedRobot>(rbsFile);
         //TODO make + crl::gui::SimpleGroundModel::getHeight(crl::P3D(0, 0, 0)) work here

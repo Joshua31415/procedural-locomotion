@@ -50,10 +50,10 @@ public:
      */
     explicit RunningController(
         const std::shared_ptr<LocomotionTrajectoryPlanner> &planner,
-        double cycleLength,
-        double stanceStart,
-        double swingStart,
-        double heelStrikeStart, 
+        double &cycleLength,
+        double &stanceStart,
+        double &swingStart,
+        double &heelStrikeStart,
         double shoulderMax = -0.26179938,
         double shoulderMin = 0.5,
         double spineAmplitudeDegree = 7.0,
