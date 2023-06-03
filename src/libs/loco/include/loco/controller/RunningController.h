@@ -34,7 +34,6 @@ public:
     std::array<P3D, 2> heelStarts;
     std::array<P3D, 2> heelEnds;
     std::array<std::array<double, 2>, 2> toeLimits;
-    std::array<bool, 2> heelStartSet;
     std::array<V3D, 2> defaultHeelToToe;
  
     Trajectory1D shoulderJointTrajectory;
@@ -107,7 +106,6 @@ public:
             heelTargets[i] = pHeel;
             heelStarts[i] = pHeel;
             heelEnds[i] = pHeel;
-            heelStartSet[i] = false;
             toeTargets[i] = pToes;
             swingTrajectories[i].addKnot(0, V3D(pHeel));
             swingTrajectories[i].addKnot(1, V3D(pHeel));
@@ -381,7 +379,6 @@ public:
         if (nextPhase == Phase::HeelStrike) {
             P3D pHeel = heel->getEEWorldPos();
             pHeel[1] = heelHeight;  // + gui::SimpleGroundModel::getHeight(pHeel);
-            heelStartSet[i] = false;
             return pHeel;
         }
         // result isnt actually used for any of the other phases

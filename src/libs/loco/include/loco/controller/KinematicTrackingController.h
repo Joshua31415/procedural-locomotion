@@ -30,9 +30,6 @@ public:
     //Vector of point/radius/color
     std::vector<std::tuple<P3D, double, V3D>> drawList{};
 
-    std::array<P3D, 2> stanceTargets;
-    std::array<P3D, 2> swingTargets;
-    std::array<P3D, 2> heelStrikeTargets;
     std::array<Trajectory3D, 2> swingTrajectories;
 
     std::array<P3D, 2> toeTargets;
@@ -41,12 +38,9 @@ public:
     std::array<P3D, 2> heelStarts;
     std::array<P3D, 2> heelEnds;
 
-    std::array<bool, 2> heelStartSet;
 
     Trajectory1D shoulderJointTrajectory;
     Trajectory1D elbowJointTrajectory;
-
-    int its = 0;
 
 public:
     /**
@@ -82,15 +76,11 @@ public:
         for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
-            stanceTargets[i] = pToes;
-            heelStrikeTargets[i] = pToes;
             heelTargets[i] = pHeel;
             heelStarts[i] = pHeel;
             heelEnds[i] = pHeel;
-            heelStartSet[i] = false;
             toeTargets[i] = pToes;
             toeStrikeTarget[i] = pToes;
-//            heelHeight[i] = pHeel.y;
             swingTrajectories[i].addKnot(0, V3D(pHeel));
             swingTrajectories[i].addKnot(1, V3D(pHeel));
         }
@@ -138,6 +128,7 @@ public:
                 }
                 setToeTarget(i, toeTargets[i]);
             break; case Swing:
+                //TODO check if setHipAngleToTangent is still necessary
                 setHipAngleToTangent(i);
                 moveToesBackToDefault(i);
                 setHeelTarget(i, heelTargets[i]);
@@ -274,13 +265,13 @@ public:
         swingTrajectories[i].addKnot(1.0, p3);
     }
 
-    P3D computeHeelTargetSwing(int i, double dt) {
+    [[nodiscard]] P3D computeHeelTargetSwing(int i, double dt) {
         double cyclePercent = getCyclePercent(i, t+dt);
 
         return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
     }
 
-    P3D computeToeTarget(int i, Phase nextPhase, double dt) {
+    [[nodiscard]] P3D computeToeTarget(int i, Phase nextPhase, double dt) {
         auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
 
@@ -302,7 +293,7 @@ public:
         }
     }
 
-    P3D computeHeelTarget(int i, Phase nextPhase) {
+    [[nodiscard]] P3D computeHeelTarget(int i, Phase nextPhase) {
         auto heel = robot->getLimb(i + 2);
         if (nextPhase == Stance) {
             return P3D(0, 0, 0);
@@ -321,7 +312,6 @@ public:
             toeStrikeTarget[i] = pFinal;
 
             pHeel[1] = heelHeight + gui::SimpleGroundModel::getHeight(pHeel);
-            heelStartSet[i] = false;
             return pHeel;
         }
     }

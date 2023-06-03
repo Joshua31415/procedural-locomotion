@@ -31,7 +31,7 @@ public:
     enum Phase { Stance, Swing, HeelStrike };
 
     // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
-    std::array<std::array<int, 3>, 2> armJointIndices;
+    std::array<std::array<int, 3>, 2> armJointIndices{};
     const double shoulderMin;
     const double shoulderMax;
 
@@ -40,10 +40,10 @@ public:
     const double pelvisAmplitude_z;
     int spineIdx;
     int neckIdx;
-    std::array<int, 3> pelvisIdx;
+    std::array<int, 3> pelvisIdx{};
 
     // hip, knee, ankle1, toe, ankle2
-    std::array<std::array<int, 5>, 2> footJointIndices;
+    std::array<std::array<int, 5>, 2> footJointIndices{};
     double heelHeight;
     double toeHeight;
     double heelToeDistance;
@@ -102,7 +102,7 @@ public:
         pelvisIdx[2] = robot->getJointIndex("lowerback_z");
     }
 
-    virtual ~LocomotionController(){};
+    virtual ~LocomotionController()= default;;
 
     /**
      * Generate motion trajectory with timestep size dt.
@@ -139,7 +139,7 @@ public:
     virtual void plotDebugInfo() = 0;
 
 
-    double toRad(double degree) const {
+    [[nodiscard]] double toRad(double degree) const {
         return degree * twoPi / 360.0;
     }
     
@@ -153,27 +153,27 @@ public:
         return a * (1.0 - time) + b * time;
     }
 
-    double getCyclePercent(int i, double time) const {
+    [[nodiscard]] double getCyclePercent(int i, double time) const {
         return std::fmod(i * 0.5 * cycleLength + time, cycleLength) / cycleLength;
     }
 
-    bool isStance(double cyclePercent) const {
+    [[nodiscard]] bool isStance(double cyclePercent) const {
         return stanceStart <= cyclePercent && cyclePercent < swingStart;
     }
 
-    bool isEarlyStance(double cyclePercent) const {
+    [[nodiscard]] bool isEarlyStance(double cyclePercent) const {
         return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart) * 0.5);
     }
 
-    bool isSwing(double cyclePercent) const {
+    [[nodiscard]] bool isSwing(double cyclePercent) const {
         return swingStart <= cyclePercent && cyclePercent < heelStrikeStart;
     }
 
-    bool isHeelStrike(double cyclePercent) const {
+    [[nodiscard]] bool isHeelStrike(double cyclePercent) const {
         return heelStrikeStart <= cyclePercent && cyclePercent < 1.0;
     }
 
-    Phase getPhase(int i, double time) const {
+    [[nodiscard]] Phase getPhase(int i, double time) const {
         double cyclePercent = getCyclePercent(i, time);
         if (isStance(cyclePercent)) {
             return Phase::Stance;
