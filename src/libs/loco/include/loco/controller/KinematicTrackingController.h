@@ -129,6 +129,7 @@ public:
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             if (currentPhase == Phase::HeelStrike) {
+            //TODO check if still necessary
                 setAnkleAngleDuringHeelStrike(i);
             }
         }
@@ -233,8 +234,8 @@ public:
 
         //spline points get computed by piecewise application of rotation during strike phase
         V3D p1 = V3D(heelStarts[i] + currentOrientation * heelDiff * 0.25);
-        V3D p2 = p1 + currentOrientation.slerp(0.25, futureOrientation) * heelDiff * 0.5;
-        V3D p3 = p2 + currentOrientation.slerp(0.75, futureOrientation) * heelDiff * 0.25;
+        V3D p2 = p1 + currentOrientation.slerp(0.5, futureOrientation) * heelDiff * 0.5;
+        V3D p3 = p2 + futureOrientation * heelDiff * 0.25;
 
         heelEnds[i] = getP3D(p3);
 
@@ -269,7 +270,7 @@ public:
             // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             double cyclePercent = getCyclePercent(i, t+dt);
-            return lerp(pInitial, toeStrikeTarget[i], remap(cyclePercent, heelStrikeStart, 1.0));
+            return lerp(pInitial, toeStrikeTarget[i], remap(cyclePercent, heelStrikeStart, 1.0)); // TODO make circular trajectory
         }
     }
 
