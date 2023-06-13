@@ -42,6 +42,8 @@ public:
         double &swingStart;
         double &heelStrikeStart;
 
+        const double earlyStanceDuration = 0.5;
+
         enum Phase { Stance, Swing, HeelStrike };
 
         // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
@@ -193,7 +195,7 @@ public:
     }
 
     [[nodiscard]] bool isEarlyStance(double cyclePercent) const {
-        return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart) * 0.5);
+        return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart) * earlyStanceDuration);
     }
 
     [[nodiscard]] bool isSwing(double cyclePercent) const {

@@ -10,13 +10,6 @@
 namespace crl::loco {
 
 
-/* TODO
- * Smooth transition between Phases
- * walking backwards
- * walking in a curve
-*/
-
-
 /**
  * A controller that kinematically "tracks" the objectives output by a
  * locomotion trajectory generator
@@ -28,8 +21,6 @@ public:
 
     std::array<P3D, 2> toeStrikeTarget{};
 
-    const double elbowMin;
-    const double elbowMax;
     const double elbowSwingOffset = 0.03;
 
 public:
@@ -60,9 +51,7 @@ public:
             shoulderMin,
             spineAmplitudeDegree,
             pelvisAmplitudeDegree_x,
-            pelvisAmplitudeDegree_z),
-          elbowMin(elbowMin),
-          elbowMax(elbowMax) {
+            pelvisAmplitudeDegree_z){
         for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
@@ -108,12 +97,11 @@ public:
                 setToesToFloor(i, targetPos);
                 if(isEarlyStance(cyclePercent)){
                     setHeelToFloor(i, targetPos);
-                    setHeelTarget(i, heelTargets[i], 1 - remap(cyclePercent, stanceStart, swingStart));
+                    //Smoothly reduce weight of target to zero until end of early stance
+                    setHeelTarget(i, heelTargets[i], 1 - remap(cyclePercent, stanceStart, swingStart*earlyStanceDuration));
                 }
                 setToeTarget(i, toeTargets[i]);
             break; case Swing:
-                //TODO check if setHipAngleToTangent is still necessary
-                setHipAngleToTangent(i);
                 moveToesBackToDefault(i);
                 setHeelTarget(i, heelTargets[i]);
             break; case HeelStrike:
