@@ -144,11 +144,6 @@ public:
             ImGui::Checkbox("Draw debug info", &drawDebugInfo);
         }
 
-        if (ImGui::CollapsingHeader("Gait Parameters")) {
-            ImGui::SliderDouble("Cycle Length", &modelOptions[selectedModel].cycleLength, 0.5, 1.5, "%f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderDouble("Swing Start", &modelOptions[selectedModel].swingStart, modelOptions[selectedModel].stanceStart, modelOptions[selectedModel].heelStrikeStart, "%f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderDouble("Heel Strike Start", &modelOptions[selectedModel].heelStrikeStart, modelOptions[selectedModel].swingStart, 1.0, "%f", ImGuiSliderFlags_AlwaysClamp);
-        }
 
         ImGui::End();
 
