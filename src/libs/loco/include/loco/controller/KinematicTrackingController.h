@@ -111,14 +111,13 @@ public:
             setArmAngles(i); 
         }
         setSpineAngle();
-        // setPelvisAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
             if (currentPhase == Phase::HeelStrike) {
             //TODO check if still necessary
-                setAnkleAngleDuringHeelStrike(i);
+//                setAnkleAngleDuringHeelStrike(i);
             }
         }
         // preparation for the next phase depending on the transition
