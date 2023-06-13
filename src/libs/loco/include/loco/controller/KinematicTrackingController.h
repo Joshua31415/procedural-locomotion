@@ -113,13 +113,7 @@ public:
         setSpineAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
-        for (int i : {0, 1}) {
-            Phase currentPhase = getPhase(i, t);
-            if (currentPhase == Phase::HeelStrike) {
-            //TODO check if still necessary
-//                setAnkleAngleDuringHeelStrike(i);
-            }
-        }
+
         // preparation for the next phase depending on the transition
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
@@ -141,32 +135,6 @@ public:
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
 
-    }
-
-    void setHipAngleToTangent(int legIdx){
-        const auto hipJointIndex = (legIdx == 0) ?
-                robot->getJointByName("rHip_torsion")->jIndex
-            :   robot->getJointByName("lHip_torsion")->jIndex;
-
-//        const double dtSpline = remap(swingStart + dt, swingStart, heelStrikeStart);
-//
-//        const double tSpline = remap(getCyclePercent(legIdx, t), swingStart, heelStrikeStart);
-//
-//
-//        const auto tangent = (swingTrajectories[legIdx].evaluate_catmull_rom(tSpline+dtSpline)
-//                             - swingTrajectories[legIdx].evaluate_catmull_rom(tSpline))
-//                                 .normalized();
-
-        dVector q;
-        gcrr.getQ(q);
-
-        double cyclePercent = getCyclePercent(legIdx, t);
-
-        q(6 + hipJointIndex) = lerp(q(6 + hipJointIndex), 0.0, remap(cyclePercent, swingStart, heelStrikeStart));
-
-
-        gcrr.setQ(q);
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
     void setAnkleTiltsToZero(){
@@ -254,7 +222,6 @@ public:
             return P3D(0, 0, 0);
 
         break;case HeelStrike:
-            // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             double cyclePercent = getCyclePercent(i, t+dt);
             return lerp(pInitial, toeStrikeTarget[i], remap(cyclePercent, heelStrikeStart, 1.0)); // TODO make circular trajectory
@@ -303,7 +270,7 @@ public:
     void setArmAngles(int armIdx) {
         dVector q;
         gcrr.getQ(q);
-        // need to map armIdx 1 to 0 and vice-versa, or maybe not? Use for the swing sync
+
         double speed_direction = planner->speedForward;
         int syncedLegIdx;
         // Need a smooth transition
@@ -313,7 +280,6 @@ public:
             syncedLegIdx = 0;
         }
         double cyclePercent = getCyclePercent(syncedLegIdx, t);
-        double phase = getPhase(syncedLegIdx, t);
 
         // for the first frame
         if (t <= cycleLength){
