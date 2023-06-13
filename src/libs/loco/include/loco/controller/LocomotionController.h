@@ -33,8 +33,6 @@ public:
 
     Trajectory1D shoulderJointTrajectory{};
 
-
-
         double t;
 
         double &cycleLength;
@@ -48,8 +46,6 @@ public:
 
         // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
         std::array<std::array<int, 3>, 2> armJointIndices{};
-        const double shoulderMin;
-        const double shoulderMax;
 
         const double spineAmplitude;
         const double pelvisAmplitude_x;
@@ -65,7 +61,7 @@ public:
         double heelToeDistance;
 public:
     LocomotionController(const std::shared_ptr<LocomotionTrajectoryPlanner>& planner, double &cycleLength, double &stanceStart, double &swingStart,
-                         double &heelStrikeStart, double shoulderMax, double shoulderMin, double spinneAmplitudeDegree, double pelvisAmplitudeDegree_x,
+                         double &heelStrikeStart, double shoulderMax, double shoulderMin, double spineAmplitudeDegree, double pelvisAmplitudeDegree_x,
                          double pelvisAmplitudeDegree_z)
         : planner(planner),
           gcrr(planner->robot),
@@ -73,9 +69,7 @@ public:
           stanceStart(stanceStart),
           swingStart(swingStart),
           heelStrikeStart(heelStrikeStart),
-          shoulderMax(shoulderMax),
-          shoulderMin(shoulderMin),
-          spineAmplitude(toRad(spinneAmplitudeDegree)),
+          spineAmplitude(toRad(spineAmplitudeDegree)),
           pelvisAmplitude_x(toRad(pelvisAmplitudeDegree_x)),
           pelvisAmplitude_z(toRad(pelvisAmplitudeDegree_z))
     {
@@ -239,22 +233,6 @@ public:
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
-    void setPelvisAngle() {
-        dVector q;
-        gcrr.getQ(q);
-
-        double cyclePercent = getCyclePercent(0, t);
-        double pelvisTarget_x = abs(pelvisAmplitude_x * sin(twoPi * cyclePercent - 1/10 * pi));
-        pelvisTarget_x = pelvisTarget_x < pelvisAmplitude_x/2 ? 0 : pelvisTarget_x - pelvisAmplitude_x/2;
-        double pelvisTarget_y = spineAmplitude * sin(twoPi * cyclePercent - 3/5 * pi); //sync with spine
-        double pelvisTarget_z = pelvisAmplitude_z * sin(twoPi * cyclePercent - 3/5 * pi);
-        q(6 + pelvisIdx[0]) = pelvisTarget_x;
-        q(6 + pelvisIdx[1]) = pelvisTarget_y;
-        q(6 + pelvisIdx[2]) = pelvisTarget_z;
-        q(6 + spineIdx) = -pelvisTarget_y;
-        gcrr.setQ(q);
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
-    }
 
     void setAnkleAngleDuringHeelStrike(int footIdx) {
         dVector q;

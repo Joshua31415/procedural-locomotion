@@ -10,13 +10,6 @@
 namespace crl::loco {
 
 
-/* TODO
- * Smooth transition between Phases
- * walking backwards
- * walking in a curve
-*/
-
-
 /**
  * A controller that kinematically "tracks" the objectives output by a
  * locomotion trajectory generator
