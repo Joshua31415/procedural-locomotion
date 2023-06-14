@@ -250,10 +250,13 @@ public:
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
-    void drawEnvironment(gui::Shader *shader) const {
-        drawEnvMap(*shader, planner->getTargetTrunkPositionAtTime(t));
+    void drawGround(gui::Shader *shader) const {
         if(!gui::SimpleGroundModel::isFlat)
             gui::SimpleGroundModel::groundUneven.draw(*shader, V3D(0, 0, 0));
+    }
+
+    void drawEnvironment(gui::Shader *shader) const {
+        drawEnvMap(*shader, planner->getTargetTrunkPositionAtTime(t));
     }
 };
 

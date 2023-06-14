@@ -68,7 +68,11 @@ public:
     void drawObjectsWithoutShadows(const crl::gui::Shader &shader) override {
         robot_->draw(shader);
 
-        controller_->drawEnvironment(&basicShader);
+        if(showGround && !crl::gui::SimpleGroundModel::isFlat)
+            controller_->drawGround(&basicShader);
+
+        if (drawEnvMap)
+            controller_->drawEnvironment(&basicShader);
 
         if (drawDebugInfo)
             controller_->drawDebugInfo(&basicShader);
@@ -148,6 +152,8 @@ public:
             }
             ImGui::Checkbox("Show end effectors", &robot_->showEndEffectors);
             ImGui::Checkbox("Draw debug info", &drawDebugInfo);
+            ImGui::Checkbox("Draw Environment Map", &drawEnvMap);
+            ImGui::Checkbox("Draw ground", &showGround);
         }
 
 
@@ -334,6 +340,7 @@ public:
     uint selectedModel = 0;
     bool followRobotWithCamera = true;
     bool drawDebugInfo = true;
+    bool drawEnvMap = true;
 };
 
 }  // namespace locoApp
