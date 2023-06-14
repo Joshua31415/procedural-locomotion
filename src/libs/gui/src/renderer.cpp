@@ -129,9 +129,9 @@ void drawRectangle(const P3D &p, const V3D &normal, const double &angle, const V
     drawCuboid(p, Quaternion(AngleAxisd(theta, v)) * Quaternion(AngleAxisd(angle, V3D(0, 1, 0))), dim, shader, color, alpha);
 }
 
-void drawEnvMap(const Shader &shader){
+void drawEnvMap(const Shader &shader, P3D pos){
     auto &envMap = rendering::GetCurrentContext()->environmentMap;
-    envMap.position = P3D{0, 0, 0};
+    envMap.position = pos;
     envMap.scale = V3D(100, 100, 100);
     envMap.draw(shader, V3D(0, 0, 0), 1.0);
 }

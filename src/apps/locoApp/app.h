@@ -68,6 +68,8 @@ public:
     void drawObjectsWithoutShadows(const crl::gui::Shader &shader) override {
         robot_->draw(shader);
 
+        controller_->drawEnvironment(&basicShader);
+
         if (drawDebugInfo)
             controller_->drawDebugInfo(&basicShader);
     }
@@ -147,7 +149,7 @@ public:
 
         ImGui::End();
 
-        planner_->visualizeContactSchedule();
+//        planner_->visualizeContactSchedule();
         planner_->visualizeParameters();
     }
 

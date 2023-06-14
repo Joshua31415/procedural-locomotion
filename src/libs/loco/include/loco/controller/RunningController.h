@@ -375,12 +375,7 @@ public:
             drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
         }
         */
-        //        planner->drawTrajectories(shader);
-
-        drawEnvMap(*shader);
-
-        if(!gui::SimpleGroundModel::isFlat)
-            gui::SimpleGroundModel::groundUneven.draw(*shader, V3D(0, 0, 0));
+//        planner->drawTrajectories(shader);
     }
 
     void plotDebugInfo() override {

@@ -249,6 +249,12 @@ public:
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
+
+    void drawEnvironment(gui::Shader *shader) const {
+        drawEnvMap(*shader, planner->getTargetTrunkPositionAtTime(t));
+        if(!gui::SimpleGroundModel::isFlat)
+            gui::SimpleGroundModel::groundUneven.draw(*shader, V3D(0, 0, 0));
+    }
 };
 
 }  // namespace crl::loco

@@ -41,7 +41,7 @@ void drawCircle(const P3D &center, const V3D &normal, const double &radius, cons
 void drawRectangle(const P3D &p, const V3D &normal, const double &angle, const Vector2d &dims, const Shader &shader, const V3D &color = V3D(1, 0, 0),
                    float alpha = 1.0);
 
-void drawEnvMap(const Shader &shader);
+void drawEnvMap(const Shader &shader, P3D pos = P3D{0, 0, 0});
 
 /**
  * we could go from the vector "from" the long way, or the short way. The Vector up will tell us which one is meant
