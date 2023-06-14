@@ -43,12 +43,30 @@ Walking on uneven terrain
 ## Installing Google Ceres
 
 ### Windows
-For Windows only a Visual Studio version was tested. 
+#### Visual Studio (tested)
 Download [ceres-windows](https://github.com/tbennun/ceres-windows) and follow the given install instructions there.
 It might be necessary to copy the files `ceres.dll`, `ceres.exp`, `ceres.lib`, `ceres.pdb`, `ceres_staci.lib`,
 `ceres_static.pdb`, `libglog_static.lib` and `ligglog_static.pdb` from the ceres-windows compilation folder into the 
 compilation folder of this project, i.e. the folder from which `locoApp.exe` will be executed.
 
+#### Visual Studio with Vcpkg (tested)
+[Vcpkg](https://github.com/microsoft/vcpkg) is the homebrew equivalent on Microsoft Windows and can be used to install ceres solver.
+After cloning and installing, please note that vcpkg would install x86 libraries by default, run either of the following to install x64 ceres:
+
+
+```cmd
+.\vcpkg\vcpkg install ceres:x64-windows
+```
+
+Or
+
+```cmd
+.\vcpkg\vcpkg install ceres --triplet=x64-windows
+```
+Then, you can open the CMake Settings Editor in Visual Studio, and under CMake toolchain file, add the path to the vcpkg toolchain file:
+```cmd
+[vcpkg root]/scripts/buildsystems/vcpkg.cmake
+```
 ### Linux
 
 #### Ubuntu (untested)
