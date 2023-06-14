@@ -58,7 +58,7 @@ public:
 
     int getSize() const;
 
-    void draw(const Shader &shader, const double &intensity = 1.0, const V3D &groundColor = V3D(0.95, 0.95, 0.95),
+    void draw(const Shader &shader, const double &intensity = 1.0, const V3D &groundColor = V3D(0.15, 0.7, 0.1),
               const V3D &gridColor = V3D(0.78431, 0.78431, 0.78431)) const;
 
     [[nodiscard]] double getHeight(const P3D &position) const {

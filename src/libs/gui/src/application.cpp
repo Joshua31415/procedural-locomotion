@@ -656,6 +656,10 @@ void ShadowApplication::drawImGui() {
         ImGui::SliderFloat("Light Proj Scale", &light.s, 0.0f, 5.0f);
         ImGui::InputScalarN("Light Location", ImGuiDataType_Double, &light.pos, 3);
 
+        ImGui::SliderFloat("Floor Red Component", &groundColor[0], 0.f, 1.f, "%.3f");
+        ImGui::SliderFloat("Floor Green Component", &groundColor[1], 0.f, 1.f, "%.3f");
+        ImGui::SliderFloat("Floor Blue Component", &groundColor[2], 0.f, 1.f, "%.3f");
+
         static glm::vec3 lightDir = toGLM(light.pos);
         lightDir = toGLM(light.pos);
         if (ImGui::gizmo3D("##Dir1", lightDir))
