@@ -135,7 +135,11 @@ public:
         ImGui::Checkbox("Follow Robot with Camera", &followRobotWithCamera);
         if (ImGui::CollapsingHeader("Character")) {
             drawComboMenu("Model##character", modelOptions, selectedModel);
-            ImGui::Checkbox("Use Flat Terrain", &crl::gui::SimpleGroundModel::isFlat);
+            if(selectedModel == 0){
+                ImGui::Checkbox("Use Flat Terrain", &crl::gui::SimpleGroundModel::isFlat);
+            }else{
+                crl::gui::SimpleGroundModel::isFlat = true;
+            }
         }
 
         if (ImGui::CollapsingHeader("Draw")) {

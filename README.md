@@ -35,4 +35,7 @@ Walking along a curved trajectory
 Running
 ![Running](img/running.gif)
 
+Walking on uneven terrain
+![Running](img/walking_uneven.gif)
+
 
