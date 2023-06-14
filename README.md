@@ -11,16 +11,18 @@ start guide.
 
 1. Fork this repository and download the code.
 
-2. Build the project (or build `locoApp`). You can build the project in cmake Release mode for realtime performance:
+2. Install [Google Ceres](http://ceres-solver.org/installation.html)
+
+3. Build the project (or build `locoApp`). You can build the project in cmake Release mode for realtime performance:
    see [this](https://www.jetbrains.com/help/clion/cmake-profile.html) for a guide about cmake profile for CLion.
 
-3. Run the `locoApp`.
+4. Run the `locoApp`.
 
-4. Select a model to play with: `Main Menu > Character > Model`. We have `Bob` and `Running Bob` for examples.
+5. Select a model to play with: `Main Menu > Character > Model`. We have `Bob` and `Running Bob` for examples.
 
 ![Screen](img/screen.png)
 
-5. Press the space bar to play the app. You can give joystick command with arrow keys in your keyboard. 
+6. Press the space bar to play the app. You can give joystick command with arrow keys in your keyboard. 
 
 
 ## Results
@@ -37,5 +39,20 @@ Running
 
 Walking on uneven terrain
 ![Running](img/walking_uneven.gif)
+
+## Installing Google Ceres
+
+### Windows
+
+### Linux
+
+#### Ubuntu (untested)
+Download the [latest release](http://ceres-solver.org/installation.html) as a `tar.gz` archive.
+Install the necessary build dependencies and build the project, as outlined in the download instructions.
+
+
+#### Arch (tested)
+Either install from the AUR by cloning [this URL](https://aur.archlinux.org/ceres-solver-git.git) and run `makepkg -si` on the 
+resulting directory, or use `yay ceres-solver` and install the recommended package.
 
 
