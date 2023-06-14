@@ -43,6 +43,11 @@ Walking on uneven terrain
 ## Installing Google Ceres
 
 ### Windows
+For Windows only a Visual Studio version was tested. 
+Download [ceres-windows](https://github.com/tbennun/ceres-windows) and follow the given install instructions there.
+It might be necessary to copy the files `ceres.dll`, `ceres.exp`, `ceres.lib`, `ceres.pdb`, `ceres_staci.lib`,
+`ceres_static.pdb`, `libglog_static.lib` and `ligglog_static.pdb` from the ceres-windows compilation folder into the 
+compilation folder of this project, i.e. the folder from which `locoApp.exe` will be executed.
 
 ### Linux
 
