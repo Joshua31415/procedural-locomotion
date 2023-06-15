@@ -25,13 +25,21 @@ We recommend [JetBrains CLion](https://www.jetbrains.com/clion/) for the develop
 
 ## Results
 Below you can find some short example animations. For longer results please check the following YouTube links:
+
 1.: [Walking in a straight line](https://youtu.be/lE1QAzytZAg)
+
 2.: [Walking in curved trajectories](https://youtu.be/Vk_BAQI2JFY)
+
 3.: [Ground contact during walking](https://youtu.be/HAGy27ytCcU)
+
 4.: [Running in a straight line](https://youtu.be/wuxlmLcAM5g)
+
 5.: [Running in circles](https://youtu.be/MrA2kK1h9zs)
+
 6.: [Ground contact during running](https://youtu.be/EMpoPjnVFtY)
+
 7.: [Walking on uneven terrain](https://youtu.be/ugNw3Sk76Kc)
+
 
 Short Teasers:
 Walking in a straight line
