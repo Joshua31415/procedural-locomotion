@@ -10,43 +10,18 @@
 namespace crl::loco {
 
 
-/* TODO
- * Smooth transition between Phases
- * walking backwards
- * walking in a curve
-*/
-
-
 /**
  * A controller that kinematically "tracks" the objectives output by a
  * locomotion trajectory generator
  */
 class KinematicTrackingController : public LocomotionController {
 public:
-    const double elbowMin;
-    const double elbowMax;
+
+    Trajectory1D elbowJointTrajectory{};
+
+    std::array<P3D, 2> toeStrikeTarget{};
+
     const double elbowSwingOffset = 0.03;
-
-    //Vector of point/radius/color
-    std::vector<std::tuple<P3D, double, V3D>> drawList{};
-
-    std::array<P3D, 2> stanceTargets;
-    std::array<P3D, 2> swingTargets;
-    std::array<P3D, 2> heelStrikeTargets;
-    std::array<Trajectory3D, 2> swingTrajectories;
-
-    std::array<P3D, 2> toeTargets;
-    std::array<P3D, 2> toeStrikeTarget;
-    std::array<P3D, 2> heelTargets;
-    std::array<P3D, 2> heelStarts;
-    std::array<P3D, 2> heelEnds;
-
-    std::array<bool, 2> heelStartSet;
-
-    Trajectory1D shoulderJointTrajectory;
-    Trajectory1D elbowJointTrajectory;
-
-    int its = 0;
 
 public:
     /**
@@ -54,10 +29,10 @@ public:
      */
     explicit KinematicTrackingController(
         const std::shared_ptr<LocomotionTrajectoryPlanner> &planner,
-        double cycleLength,
-        double stanceStart,
-        double swingStart,
-        double heelStrikeStart,
+        double &cycleLength,
+        double &stanceStart,
+        double &swingStart,
+        double &heelStrikeStart,
         double shoulderMax = -0.0872664626, // 5 degree
         double shoulderMin = 0.0872664626,
         double elbowMin = -0.25,
@@ -76,21 +51,15 @@ public:
             shoulderMin,
             spineAmplitudeDegree,
             pelvisAmplitudeDegree_x,
-            pelvisAmplitudeDegree_z),
-          elbowMin(elbowMin),
-          elbowMax(elbowMax) {
+            pelvisAmplitudeDegree_z){
         for (int i : {0, 1}) {
             P3D pToes = robot->getLimb(i)->getEEWorldPos();
             P3D pHeel = robot->getLimb(i + 2)->getEEWorldPos();
-            stanceTargets[i] = pToes;
-            heelStrikeTargets[i] = pToes;
             heelTargets[i] = pHeel;
             heelStarts[i] = pHeel;
             heelEnds[i] = pHeel;
-            heelStartSet[i] = false;
             toeTargets[i] = pToes;
             toeStrikeTarget[i] = pToes;
-//            heelHeight[i] = pHeel.y;
             swingTrajectories[i].addKnot(0, V3D(pHeel));
             swingTrajectories[i].addKnot(1, V3D(pHeel));
         }
@@ -108,12 +77,6 @@ public:
      * destructor
      */
     ~KinematicTrackingController() override = default;
-
-    void generateMotionTrajectories(double dt = 1.0 / 30) override {
-        planner->planGenerationTime = planner->simTime;
-        planner->generateTrajectoriesFromCurrentState(dt);
-    }
-
 
     void computeAndApplyControlSignals(double dt) override {
         gcrr.syncGeneralizedCoordinatesWithRobotState();
@@ -134,11 +97,11 @@ public:
                 setToesToFloor(i, targetPos);
                 if(isEarlyStance(cyclePercent)){
                     setHeelToFloor(i, targetPos);
-                    setHeelTarget(i, heelTargets[i], 1 - remap(cyclePercent, stanceStart, swingStart));
+                    //Smoothly reduce weight of target to zero until end of early stance
+                    setHeelTarget(i, heelTargets[i], 1 - remap(cyclePercent, stanceStart, swingStart*earlyStanceDuration));
                 }
                 setToeTarget(i, toeTargets[i]);
             break; case Swing:
-                setHipAngleToTangent(i);
                 moveToesBackToDefault(i);
                 setHeelTarget(i, heelTargets[i]);
             break; case HeelStrike:
@@ -148,15 +111,9 @@ public:
             setArmAngles(i); 
         }
         setSpineAngle();
-        // setPelvisAngle();
         ikSolver->solve();
         gcrr.syncGeneralizedCoordinatesWithRobotState();
-        for (int i : {0, 1}) {
-            Phase currentPhase = getPhase(i, t);
-            if (currentPhase == Phase::HeelStrike) {
-                setAnkleAngleDuringHeelStrike(i);
-            }
-        }
+
         // preparation for the next phase depending on the transition
         for (int i : {0, 1}) {
             Phase currentPhase = getPhase(i, t);
@@ -178,32 +135,6 @@ public:
 
         gcrr.syncGeneralizedCoordinatesWithRobotState();
 
-    }
-
-    void setHipAngleToTangent(int legIdx){
-        const auto hipJointIndex = (legIdx == 0) ?
-                robot->getJointByName("rHip_torsion")->jIndex
-            :   robot->getJointByName("lHip_torsion")->jIndex;
-
-//        const double dtSpline = remap(swingStart + dt, swingStart, heelStrikeStart);
-//
-//        const double tSpline = remap(getCyclePercent(legIdx, t), swingStart, heelStrikeStart);
-//
-//
-//        const auto tangent = (swingTrajectories[legIdx].evaluate_catmull_rom(tSpline+dtSpline)
-//                             - swingTrajectories[legIdx].evaluate_catmull_rom(tSpline))
-//                                 .normalized();
-
-        dVector q;
-        gcrr.getQ(q);
-
-        double cyclePercent = getCyclePercent(legIdx, t);
-
-        q(6 + hipJointIndex) = lerp(q(6 + hipJointIndex), 0.0, remap(cyclePercent, swingStart, heelStrikeStart));
-
-
-        gcrr.setQ(q);
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
     void setAnkleTiltsToZero(){
@@ -258,8 +189,8 @@ public:
 
         //spline points get computed by piecewise application of rotation during strike phase
         V3D p1 = V3D(heelStarts[i] + currentOrientation * heelDiff * 0.25);
-        V3D p2 = p1 + currentOrientation.slerp(0.25, futureOrientation) * heelDiff * 0.5;
-        V3D p3 = p2 + currentOrientation.slerp(0.75, futureOrientation) * heelDiff * 0.25;
+        V3D p2 = p1 + currentOrientation.slerp(0.5, futureOrientation) * heelDiff * 0.5;
+        V3D p3 = p2 + futureOrientation * heelDiff * 0.25;
 
         heelEnds[i] = getP3D(p3);
 
@@ -274,13 +205,9 @@ public:
         swingTrajectories[i].addKnot(1.0, p3);
     }
 
-    P3D computeHeelTargetSwing(int i, double dt) {
-        double cyclePercent = getCyclePercent(i, t+dt);
 
-        return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
-    }
 
-    P3D computeToeTarget(int i, Phase nextPhase, double dt) {
+    [[nodiscard]] P3D computeToeTarget(int i, Phase nextPhase, double dt) {
         auto toes = robot->getLimb(i);
         auto heel = robot->getLimb(i + 2);
 
@@ -295,25 +222,16 @@ public:
             return P3D(0, 0, 0);
 
         break;case HeelStrike:
-            // might be easier to just model this via a spline for the ankle angle
             P3D pInitial = toes->getEEWorldPos();
             double cyclePercent = getCyclePercent(i, t+dt);
-            return lerp(pInitial, toeStrikeTarget[i], remap(cyclePercent, heelStrikeStart, 1.0));
+            return lerp(pInitial, toeStrikeTarget[i], remap(cyclePercent, heelStrikeStart, 1.0)); // TODO make circular trajectory
         }
     }
 
-    P3D computeHeelTarget(int i, Phase nextPhase) {
+    [[nodiscard]] P3D computeHeelTarget(int i, Phase nextPhase) {
         auto heel = robot->getLimb(i + 2);
-        if (nextPhase == Stance) {
-            return P3D(0, 0, 0);
-        } else if (nextPhase == Swing) {
-            //Gets handled differently
-            assert(false && "Swing phase should be handled separately");
-        } else if (nextPhase == HeelStrike) {
-
-
+        if (nextPhase == HeelStrike) {
             P3D pHeel = getP3D(swingTrajectories[i].evaluate_catmull_rom(1.0));
-
 
             P3D pFinal = pHeel + getP3D(robot->getHeading() * V3D(robot->getForward() * heelToeDistance));
             pFinal[1] = toeHeight + gui::SimpleGroundModel::getHeight(pFinal);
@@ -321,16 +239,16 @@ public:
             toeStrikeTarget[i] = pFinal;
 
             pHeel[1] = heelHeight + gui::SimpleGroundModel::getHeight(pHeel);
-            heelStartSet[i] = false;
             return pHeel;
         }
+        return P3D(0, 0, 0);
     }
 
     void makeToesParallelToGround(int footIdx) {
         dVector q;
         gcrr.getQ(q);
         double angle = 0;
-        for (int i = 0; i < 3; ++i) {
+        for (int i : {0, 1, 2}) {
             angle += q(footJointIndices[footIdx][i] + 6);
         }
         q(6 + footJointIndices[footIdx][3]) = -angle;
@@ -352,7 +270,7 @@ public:
     void setArmAngles(int armIdx) {
         dVector q;
         gcrr.getQ(q);
-        // need to map armIdx 1 to 0 and vice-versa, or maybe not? Use for the swing sync
+
         double speed_direction = planner->speedForward;
         int syncedLegIdx;
         // Need a smooth transition
@@ -362,7 +280,6 @@ public:
             syncedLegIdx = 0;
         }
         double cyclePercent = getCyclePercent(syncedLegIdx, t);
-        double phase = getPhase(syncedLegIdx, t);
 
         // for the first frame
         if (t <= cycleLength){
@@ -397,41 +314,34 @@ public:
         heelTargets[i][1] = heelHeight + gui::SimpleGroundModel::getHeight(position);
     }
 
-    void advanceInTime(double deltaT) override {
-        double dt = deltaT;
-        planner->advanceInTime(dt);
-    }
-
     void drawDebugInfo(gui::Shader *shader) override {
 
-//        constexpr size_t numTrajectorySamples = 100;
-//
-//
-//        for(auto leg : {0, 1}){
-//            switch(getPhase(leg ,t)){
-//                break;case Stance:
-//                    drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
-//                    if(isEarlyStance(getCyclePercent(leg, t)))
-//                        drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
-//                break;case Swing:
-//                    for(int i = 0; i < numTrajectorySamples; ++i){
-//                        drawSphere(getP3D(swingTrajectories[leg].evaluate_catmull_rom(i*1.0/numTrajectorySamples)), 0.002, *shader, {0, 1, 0});
-//                    }
-//                    drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
-//                break;case HeelStrike:
-//                    drawSphere(toeStrikeTarget[leg], 0.02, *shader, {0, 1, 0});
-//                    drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
-//                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
-//            }
-//        }
-//
-//        for(const auto&[p, r, c] : drawList)
-//            drawSphere(p, r, *shader, c);
+        constexpr size_t numTrajectorySamples = 100;
 
-        drawEnvMap(*shader);
+
+        for(auto leg : {0, 1}){
+            switch(getPhase(leg ,t)){
+                break;case Stance:
+                    drawSphere(toeTargets[leg], 0.02, *shader, {1, 0, 0});
+                    if(isEarlyStance(getCyclePercent(leg, t)))
+                        drawSphere(heelTargets[leg], 0.02, *shader, {1, 0, 0});
+                break;case Swing:
+                    for(int i = 0; i < numTrajectorySamples; ++i){
+                        drawSphere(getP3D(swingTrajectories[leg].evaluate_catmull_rom(i*1.0/numTrajectorySamples)), 0.002, *shader, {0, 1, 0});
+                    }
+                    drawSphere(heelEnds[leg], 0.02, *shader, {0, 0, 0});
+                break;case HeelStrike:
+                    drawSphere(toeStrikeTarget[leg], 0.02, *shader, {0, 1, 0});
+                    drawSphere(toeTargets[leg], 0.02, *shader, {0, 0, 1});
+                    drawSphere(heelTargets[leg], 0.02, *shader, {0, 0, 1});
+            }
+        }
+
+        for(const auto&[p, r, c] : drawList)
+            drawSphere(p, r, *shader, c);
+
+
         drawList.clear();
-        if(!gui::SimpleGroundModel::isFlat)
-            gui::SimpleGroundModel::groundUneven.draw(*shader, V3D(0, 0, 0));
 
 //        planner->drawTrajectories(shader);
     }

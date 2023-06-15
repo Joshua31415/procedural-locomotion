@@ -147,8 +147,8 @@ public:
 //    SizableGroundModel ground = SizableGroundModel(10);
     SimpleGroundModel ground{};
     bool showGround = true;
-    double groundIntensity = 1.5;
-    float groundColor[3] = {0.9, 0.9, 0.9};
+    double groundIntensity = 1.;
+    float groundColor[3] = {0.23, 0.5, 0.015};
 
     //--- World
     double world_frame_length = 1.0, world_frame_radius = 0.01;

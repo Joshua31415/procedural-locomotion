@@ -16,39 +16,52 @@ public:
     const double pi = 3.14159265358979323846;
     const double twoPi = pi * 2.0;
 
-    std::shared_ptr<LocomotionTrajectoryPlanner> planner = nullptr;
+    std::shared_ptr<LocomotionTrajectoryPlanner> planner;
     GeneralizedCoordinatesRobotRepresentation gcrr;
     std::shared_ptr<LeggedRobot> robot;
-    std::shared_ptr<IK_Solver> ikSolver = nullptr;
+    std::shared_ptr<IK_Solver> ikSolver;
 
-    double t;
+    //Vector of point/radius/color
+    std::vector<std::tuple<P3D, double, V3D>> drawList{};
 
-    const double cycleLength;
-    const double stanceStart;
-    const double swingStart;
-    const double heelStrikeStart;
-    enum Phase { Stance, Swing, HeelStrike };
+    std::array<Trajectory3D, 2> swingTrajectories{};
 
-    // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
-    std::array<std::array<int, 3>, 2> armJointIndices;
-    const double shoulderMin;
-    const double shoulderMax;
+    std::array<P3D, 2> toeTargets{};
+    std::array<P3D, 2> heelTargets{};
+    std::array<P3D, 2> heelStarts{};
+    std::array<P3D, 2> heelEnds{};
 
-    const double spineAmplitude;
-    const double pelvisAmplitude_x;
-    const double pelvisAmplitude_z;
-    int spineIdx;
-    int neckIdx;
-    std::array<int, 3> pelvisIdx;
+    Trajectory1D shoulderJointTrajectory{};
 
-    // hip, knee, ankle1, toe, ankle2
-    std::array<std::array<int, 5>, 2> footJointIndices;
-    double heelHeight;
-    double toeHeight;
-    double heelToeDistance;
+        double t;
+
+        double &cycleLength;
+        double &stanceStart;
+        double &swingStart;
+        double &heelStrikeStart;
+
+        const double earlyStanceDuration = 0.5;
+
+        enum Phase { Stance, Swing, HeelStrike };
+
+        // 1: shoulder sagittal plane, 2: elbow saggital plane, 3: shoulder torsion
+        std::array<std::array<int, 3>, 2> armJointIndices{};
+
+        const double spineAmplitude;
+        const double pelvisAmplitude_x;
+        const double pelvisAmplitude_z;
+        int spineIdx;
+        int neckIdx;
+        std::array<int, 3> pelvisIdx{};
+
+        // hip, knee, ankle1, toe, ankle2
+        std::array<std::array<int, 5>, 2> footJointIndices{};
+        double heelHeight;
+        double toeHeight;
+        double heelToeDistance;
 public:
-    LocomotionController(const std::shared_ptr<LocomotionTrajectoryPlanner>& planner, double cycleLength, double stanceStart, double swingStart,
-                         double heelStrikeStart, double shoulderMax, double shoulderMin, double spinneAmplitudeDegree, double pelvisAmplitudeDegree_x,
+    LocomotionController(const std::shared_ptr<LocomotionTrajectoryPlanner>& planner, double &cycleLength, double &stanceStart, double &swingStart,
+                         double &heelStrikeStart, double shoulderMax, double shoulderMin, double spineAmplitudeDegree, double pelvisAmplitudeDegree_x,
                          double pelvisAmplitudeDegree_z)
         : planner(planner),
           gcrr(planner->robot),
@@ -56,9 +69,7 @@ public:
           stanceStart(stanceStart),
           swingStart(swingStart),
           heelStrikeStart(heelStrikeStart),
-          shoulderMax(shoulderMax),
-          shoulderMin(shoulderMin),
-          spineAmplitude(toRad(spinneAmplitudeDegree)),
+          spineAmplitude(toRad(spineAmplitudeDegree)),
           pelvisAmplitude_x(toRad(pelvisAmplitudeDegree_x)),
           pelvisAmplitude_z(toRad(pelvisAmplitudeDegree_z))
     {
@@ -101,12 +112,15 @@ public:
         pelvisIdx[2] = robot->getJointIndex("lowerback_z");
     }
 
-    virtual ~LocomotionController(){};
+    virtual ~LocomotionController()= default;;
 
     /**
      * Generate motion trajectory with timestep size dt.
      */
-    virtual void generateMotionTrajectories(double dt = 1.0 / 30.0) = 0;
+    void generateMotionTrajectories(double dt = 1.0 / 30) {
+        planner->planGenerationTime = planner->simTime;
+        planner->generateTrajectoriesFromCurrentState(dt);
+    }
 
     /**
      * Compute and apply control signal with timestep size dt.
@@ -116,7 +130,9 @@ public:
     /**
      * Call this function after applying control signal.
      */
-    virtual void advanceInTime(double dt) = 0;
+    void advanceInTime(double deltaT) {
+        planner->advanceInTime(deltaT);
+    }
 
     /**
      * Draw control options to ImGui.
@@ -137,8 +153,20 @@ public:
      */
     virtual void plotDebugInfo() = 0;
 
+    /**
+     * @brief Computes catmull rom interpolation of swing trajectory of heel
+     * @param i leg index
+     * @param dt delta time of simulation
+     * @return interpolated heel position at time t+dt
+     */
+    [[nodiscard]] P3D computeHeelTargetSwing(int i, double dt) {
+        double cyclePercent = getCyclePercent(i, t+dt);
 
-    double toRad(double degree) const {
+        return getP3D(swingTrajectories[i].evaluate_catmull_rom(remap(cyclePercent, swingStart, heelStrikeStart)));
+    }
+
+
+    [[nodiscard]] double toRad(double degree) const {
         return degree * twoPi / 360.0;
     }
     
@@ -152,27 +180,27 @@ public:
         return a * (1.0 - time) + b * time;
     }
 
-    double getCyclePercent(int i, double time) const {
+    [[nodiscard]] double getCyclePercent(int i, double time) const {
         return std::fmod(i * 0.5 * cycleLength + time, cycleLength) / cycleLength;
     }
 
-    bool isStance(double cyclePercent) const {
+    [[nodiscard]] bool isStance(double cyclePercent) const {
         return stanceStart <= cyclePercent && cyclePercent < swingStart;
     }
 
-    bool isEarlyStance(double cyclePercent) const {
-        return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart) * 0.5);
+    [[nodiscard]] bool isEarlyStance(double cyclePercent) const {
+        return isStance(cyclePercent) && (cyclePercent < (stanceStart + swingStart) * earlyStanceDuration);
     }
 
-    bool isSwing(double cyclePercent) const {
+    [[nodiscard]] bool isSwing(double cyclePercent) const {
         return swingStart <= cyclePercent && cyclePercent < heelStrikeStart;
     }
 
-    bool isHeelStrike(double cyclePercent) const {
+    [[nodiscard]] bool isHeelStrike(double cyclePercent) const {
         return heelStrikeStart <= cyclePercent && cyclePercent < 1.0;
     }
 
-    Phase getPhase(int i, double time) const {
+    [[nodiscard]] Phase getPhase(int i, double time) const {
         double cyclePercent = getCyclePercent(i, time);
         if (isStance(cyclePercent)) {
             return Phase::Stance;
@@ -205,22 +233,6 @@ public:
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
 
-    void setPelvisAngle() {
-        dVector q;
-        gcrr.getQ(q);
-
-        double cyclePercent = getCyclePercent(0, t);
-        double pelvisTarget_x = abs(pelvisAmplitude_x * sin(twoPi * cyclePercent - 1/10 * pi));
-        pelvisTarget_x = pelvisTarget_x < pelvisAmplitude_x/2 ? 0 : pelvisTarget_x - pelvisAmplitude_x/2;
-        double pelvisTarget_y = spineAmplitude * sin(twoPi * cyclePercent - 3/5 * pi); //sync with spine
-        double pelvisTarget_z = pelvisAmplitude_z * sin(twoPi * cyclePercent - 3/5 * pi);
-        q(6 + pelvisIdx[0]) = pelvisTarget_x;
-        q(6 + pelvisIdx[1]) = pelvisTarget_y;
-        q(6 + pelvisIdx[2]) = pelvisTarget_z;
-        q(6 + spineIdx) = -pelvisTarget_y;
-        gcrr.setQ(q);
-        gcrr.syncRobotStateWithGeneralizedCoordinates();
-    }
 
     void setAnkleAngleDuringHeelStrike(int footIdx) {
         dVector q;
@@ -236,6 +248,15 @@ public:
         q(6 + footJointIndices[footIdx][2]) = lerp(angleCurrent, angleTarget, remap(cyclePercent, heelStrikeStart, 1.0));
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
+    }
+
+    void drawGround(gui::Shader *shader) const {
+        if(!gui::SimpleGroundModel::isFlat)
+            gui::SimpleGroundModel::groundUneven.draw(*shader, V3D(0, 0, 0));
+    }
+
+    void drawEnvironment(gui::Shader *shader) const {
+        drawEnvMap(*shader, planner->getTargetTrunkPositionAtTime(t));
     }
 };
 

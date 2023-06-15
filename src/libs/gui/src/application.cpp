@@ -613,8 +613,10 @@ void ShadowApplication::renderPass() {
 }
 
 void ShadowApplication::drawObjectsWithShadows(const Shader &shader) {
-    if (showGround)
+    if (showGround && SimpleGroundModel::isFlat){
         SimpleGroundModel::draw(shader, groundIntensity, crl::gui::toV3D(groundColor));
+    }
+
 
     if(show_world_frame){
         crl::gui::drawArrow3d(P3D(0,0,0), world_frame_length * V3D(1,0,0), world_frame_radius, shader, V3D(0.75, 0.25, 0.25), 1.0);
@@ -655,6 +657,10 @@ void ShadowApplication::drawImGui() {
         ImGui::SliderFloat("Shadow Bias", &shadowbias, 0.0f, 0.01f, "%.5f");
         ImGui::SliderFloat("Light Proj Scale", &light.s, 0.0f, 5.0f);
         ImGui::InputScalarN("Light Location", ImGuiDataType_Double, &light.pos, 3);
+
+        ImGui::SliderFloat("Floor Red Component", &groundColor[0], 0.f, 1.f, "%.3f");
+        ImGui::SliderFloat("Floor Green Component", &groundColor[1], 0.f, 1.f, "%.3f");
+        ImGui::SliderFloat("Floor Blue Component", &groundColor[2], 0.f, 1.f, "%.3f");
 
         static glm::vec3 lightDir = toGLM(light.pos);
         lightDir = toGLM(light.pos);

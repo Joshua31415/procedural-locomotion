@@ -24,7 +24,7 @@ struct ModelOption {
     double heelStrikeStart;
 };
 
-const std::vector<ModelOption> modelOptions = {
+std::vector<ModelOption> modelOptions = {
     {
         ModelOption::Type::BOB,                 //
         "Bob",                                  //

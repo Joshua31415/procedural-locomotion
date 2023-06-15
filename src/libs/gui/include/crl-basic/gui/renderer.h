@@ -41,7 +41,7 @@ void drawCircle(const P3D &center, const V3D &normal, const double &radius, cons
 void drawRectangle(const P3D &p, const V3D &normal, const double &angle, const Vector2d &dims, const Shader &shader, const V3D &color = V3D(1, 0, 0),
                    float alpha = 1.0);
 
-void drawEnvMap(const Shader &shader);
+void drawEnvMap(const Shader &shader, P3D pos = P3D{0, 0, 0});
 
 /**
  * we could go from the vector "from" the long way, or the short way. The Vector up will tell us which one is meant
@@ -58,7 +58,7 @@ public:
 
     int getSize() const;
 
-    void draw(const Shader &shader, const double &intensity = 1.0, const V3D &groundColor = V3D(0.95, 0.95, 0.95),
+    void draw(const Shader &shader, const double &intensity = 1.0, const V3D &groundColor = V3D(0.15, 0.7, 0.1),
               const V3D &gridColor = V3D(0.78431, 0.78431, 0.78431)) const;
 
     [[nodiscard]] double getHeight(const P3D &position) const {

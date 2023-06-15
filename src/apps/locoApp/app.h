@@ -68,6 +68,12 @@ public:
     void drawObjectsWithoutShadows(const crl::gui::Shader &shader) override {
         robot_->draw(shader);
 
+        if(showGround && !crl::gui::SimpleGroundModel::isFlat)
+            controller_->drawGround(&basicShader);
+
+        if (drawEnvMap)
+            controller_->drawEnvironment(&basicShader);
+
         if (drawDebugInfo)
             controller_->drawDebugInfo(&basicShader);
     }
@@ -133,7 +139,11 @@ public:
         ImGui::Checkbox("Follow Robot with Camera", &followRobotWithCamera);
         if (ImGui::CollapsingHeader("Character")) {
             drawComboMenu("Model##character", modelOptions, selectedModel);
-            ImGui::Checkbox("Use Flat Terrain", &crl::gui::SimpleGroundModel::isFlat);
+            if(selectedModel == 0){
+                ImGui::Checkbox("Use Flat Terrain", &crl::gui::SimpleGroundModel::isFlat);
+            }else{
+                crl::gui::SimpleGroundModel::isFlat = true;
+            }
         }
 
         if (ImGui::CollapsingHeader("Draw")) {
@@ -142,19 +152,22 @@ public:
             }
             ImGui::Checkbox("Show end effectors", &robot_->showEndEffectors);
             ImGui::Checkbox("Draw debug info", &drawDebugInfo);
+            ImGui::Checkbox("Draw Environment Map", &drawEnvMap);
+            ImGui::Checkbox("Draw ground", &showGround);
         }
+
 
         ImGui::End();
 
-        planner_->visualizeContactSchedule();
+//        planner_->visualizeContactSchedule();
         planner_->visualizeParameters();
     }
 
     void drawImPlot() override {
         crl::gui::ShadowApplication::drawImPlot();
 
-        ImGui::SliderDouble("Delta time", &dt, 1.0/1080, 1.0/30, "", ImGuiSliderFlags_AlwaysClamp);
-        ImGui::SliderInt("Target Framerate", &targetFramerate, 1, 1000, "", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::SliderDouble("Delta time", &dt, 1.0/1080, 1.0/30, "%f", ImGuiSliderFlags_AlwaysClamp);
+        ImGui::SliderInt("Target Framerate", &targetFramerate, 1, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
 
         const double gaitCycleLength = controller_->cycleLength;
 
@@ -257,7 +270,7 @@ public:
 
 private:
     void setupRobotAndController() {
-        const auto &m = modelOptions[selectedModel];
+        auto &m = modelOptions[selectedModel];
         const char *rbsFile = m.filePath.c_str();
         robot_ = std::make_shared<crl::loco::LeggedRobot>(rbsFile);
         //TODO make + crl::gui::SimpleGroundModel::getHeight(crl::P3D(0, 0, 0)) work here
@@ -327,6 +340,7 @@ public:
     uint selectedModel = 0;
     bool followRobotWithCamera = true;
     bool drawDebugInfo = true;
+    bool drawEnvMap = true;
 };
 
 }  // namespace locoApp
